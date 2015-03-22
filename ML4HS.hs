@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+
 module Main
        ( module Main
        ) where
@@ -5,16 +7,14 @@ module Main
 import Control.Monad.IO.Class
 import Control.Applicative
 import Digraph
-import Unsafe.Coerce
 import           GHC
 import Module
 import           GHC.Paths ( libdir )
 import           DynFlags
 import Outputable
 
---inGhc = do getSessionDynFlags >>= setSessionDynFlags
---           t <- guessTarger
-
+-- Run a GHC function in a default session
+inSession :: Ghc a -> IO a
 inSession f = defaultErrorHandler defaultFatalMessager defaultFlushOut $
   runGhc (Just libdir) $ do
     dflags <- getSessionDynFlags
@@ -29,7 +29,6 @@ getSrc = withArith $ do
                l <- loadModule d
                n <- getNamesInScope
                c <- return $ coreModule d
-
                g <- getModuleGraph
                mapM showModule g
                return $ (parsedSource d,"/n-----/n",  typecheckedSource d)
