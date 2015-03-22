@@ -1,0 +1,5 @@
+*.hi
+*.o
+tests/data/arith
+ML4HS
+dist
