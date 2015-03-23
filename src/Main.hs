@@ -1,14 +1,12 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
-module Main
-       ( module Main
-       ) where
+module Main where
 
 import Control.Monad.IO.Class
 import Control.Applicative
 import Digraph
 import           GHC
-import Module
+--import Module
 import           GHC.Paths ( libdir )
 import           DynFlags
 import Outputable
@@ -39,13 +37,17 @@ showSrc = do res <- getSrc
                       return $ showSDoc dflags $ ppr res
              putStrLn str
 
-withArith f = inSession $ do
-       target <- guessTarget "tests/data/arith.hs" Nothing
-       addTarget target
-       r <- load LoadAllTargets
-       case r of
-            Failed    -> error ("FAILED")
-            Succeeded -> f
+--namesIn path = withTarget path
+
+withArith = withTarget "tests/data/arith.hs"
+
+withTarget path f = inSession $ do
+  target <- guessTarget path Nothing
+  addTarget target
+  r <- load LoadAllTargets
+  case r of
+       Failed    -> error ("FAILED")
+       Succeeded -> f
 
 graph = do liftIO $ print "HI"
            graph <- depanal [] False

@@ -1,1 +1,3 @@
-import ML4HS
+module Tests where
+
+import Main
