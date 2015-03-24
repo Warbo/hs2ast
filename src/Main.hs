@@ -1,33 +1,36 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-
 module Main where
 
-import Control.Applicative
-import Tip
-import Tip.HaskellFrontend
-import Tip.Params
+import Data.Set as Set
+import Language.Haskell.Exts.Annotated hiding (ann)
+import Distribution.HaskellSuite.Modules
+import Distribution.HaskellSuite.Packages
+import Language.Haskell.Names
+import Language.Haskell.Names.Interfaces
 
-data Term = FromGhc Id | Fresh Int
-  deriving (Show,Eq,Ord)
+--parseFile :: String -> IO (Module SrcLoc)
+parseF f = do let mode = defaultParseMode {parseFilename=f}
+                  parse = parseModuleWithMode mode
+              src <- readFile f
+              return (fromParseResult (parse src))
 
-disambigId :: Id -> [Term]
-disambigId i = case i of
-                GHCOrigin name _ _ -> getUnique name vs : [ Refresh vs x | x <- [0..] ]
-                GHCPrim   po       ->
-                Eta       n        ->
+--ann :: Module SrcSpan -> ModuleT [Symbol] IO (Module (Scoped SrcSpan))
+ann = annotateModule Haskell2010 []
 
-  where
-    vs = case ppId i of
-           "label" -> Label
-           []      -> Var "x"
-           xs      -> Var xs
+compInt = computeInterfaces Haskell2010 []
 
-main = do thy <- readHaskellFile Params
-            { file        = "tests/data/arith.hs"
-            , include     = []
-            , flags       = []
-            , only        = []
-            , extra       = []
-            , extra_trans = ["plus"]
-            }
-          return thy
+compIntErr ms = do errs <- compInt ms
+                   if Set.null errs
+                      then return ms
+                      else error (show (elems errs))
+
+parseFiles = mapM parseF
+
+uniquify ms = compIntErr ms >>= mapM ann
+
+--parseUniqueStrs ss = evalNamesModuleT undefined (uniquify ss)
+
+{-
+parseUnique fs = do parsed <- parseFiles fs
+                    evalNamesModuleT undefined (uniquify parsed)
+-}
+--main = evalNamesModuleT (parseUnique ["tests/data/arith.hs"]) (getInstalledPackages)
