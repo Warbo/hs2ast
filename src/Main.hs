@@ -2,32 +2,36 @@
 
 module Main where
 
+import GHC
+import GHC.Paths
+import HsDecls
+import HscMain
+import HscTypes
 import Control.Applicative
 import Tip
 import Tip.HaskellFrontend
 import Tip.Params
 
-data Term = FromGhc Id | Fresh Int
-  deriving (Show,Eq,Ord)
+defaultEnv :: IO HscEnv
+defaultEnv = do dflags <- runGhc Nothing getSessionDynFlags
+                newHscEnv dflags
 
-disambigId :: Id -> [Term]
-disambigId i = case i of
-                GHCOrigin name _ _ -> getUnique name vs : [ Refresh vs x | x <- [0..] ]
-                GHCPrim   po       ->
-                Eta       n        ->
+renameMod ms = do env          <- defaultEnv
+                  pm           <- hscParse env ms
+                  (_, renamed) <- hscTypecheckRename env ms pm
+                  case renamed of
+                       Nothing            -> error "Did not rename"
+                       Just (x, _, _, _)  -> return (defs x)
 
-  where
-    vs = case ppId i of
-           "label" -> Label
-           []      -> Var "x"
-           xs      -> Var xs
+defs :: HsGroup Name -> HsValBinds Name
+defs g = hs_valds g
 
-main = do thy <- readHaskellFile Params
-            { file        = "tests/data/arith.hs"
-            , include     = []
-            , flags       = []
-            , only        = []
-            , extra       = []
-            , extra_trans = ["plus"]
-            }
-          return thy
+graphMods fs = do
+         getSessionDynFlags >>= setSessionDynFlags
+         mapM (`guessTarget` Nothing) fs >>= setTargets
+         load LoadAllTargets
+         depanal [] True
+
+main = runGhc (Just libdir) $ do
+         mods <- graphMods ["tests/data/arith.hs"]
+         map renameMod mods
