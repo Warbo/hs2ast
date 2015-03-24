@@ -1,4 +1,4 @@
-module Arith where
+module Arith (Nat, plus, mult, two) where
 
 data Nat = Z | S Nat deriving (Show)
 
