@@ -2,7 +2,7 @@ module Arith (Nat, plus, mult, two) where
 
 data Nat = Z | S Nat deriving (Show)
 
-plus  Z    y = y
+plus  Z    y = data
 plus (S x) y = S (plus x y)
 
 mult  Z    y = Z
