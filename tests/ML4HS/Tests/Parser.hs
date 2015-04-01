@@ -26,32 +26,39 @@ tests = testGroup "Parser Tests" [
 -- | IO test with non-empty list argument
 ioNE f (NonEmpty fs) = monadicIO (f (unique fs))
 
-noEmptyModuleSummary fs = do Right g <- go (`graphMods` fs)
+noEmptyModuleSummary fs = do Right g <- go (graphMods fs)
                              assert (not (null g))
 
 parseErrorsCauseAbort = monadicIO $ do
   fs     <- pick (listOf1 arbBad)
-  result <- go (`graphMods` fs)
+  result <- go (graphMods fs)
   assert $ case result of
                 Left  _ -> True
                 Right _ -> False
 
-renamerRuns fs = do Right x <- go (`renameFiles` fs)
-                    _ <- return ()
-                    assert True
+renamerRuns fs = do result <- go (renameFiles fs)
+                    case result of
+                         Right _ -> assert True
+                         Left  e -> showErr e
 
-canRenameFiles fs = do Right xs <- go (`renameFiles` fs)
-                       assert (not (null xs))
+canRenameFiles fs = do result <- go (renameFiles fs)
+                       case result of
+                            Right xs -> assert (not (null xs))
+                            Left  e  -> showErr e
 
-canParseFiles fs = do bs <- run $ parseFiles fs
+canParseFiles fs = do bs <- run $ runInSession (parseFiles fs)
                       assert (not (null bs))
 
-canGetBindings fs = do bs <- run $ bindingsFrom fs
+canGetBindings fs = do bs <- run $ runInSession (bindingsFrom fs)
                        assert (not (null bs))
 
 -- | Run Ghc-wrapped computations in QuickCheck
-go :: (HscEnv -> Ghc a) -> PropertyM IO (Either SomeException a)
-go = run . sumExcept . runGhcM
+go :: InSession a -> PropertyM IO (Either SomeException a)
+go = run . sumExcept . runInSession
+
+showErr e = liftIO (putStrLn "\nERROR:" >>
+                    print e           >>
+                    putStrLn "/ERROR") >> assert False
 
 -- | Represent exceptions using a sum type
 sumExcept :: IO a -> IO (Either SomeException a)

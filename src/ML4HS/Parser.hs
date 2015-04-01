@@ -17,52 +17,27 @@ import HscTypes
 import Outputable
 import ML4HS.Types
 
--- Monad management for IO and Ghc
 
-inDefaultEnv :: GhcMonad m => (HscEnv -> m a) -> m a
-inDefaultEnv f = do dflags <- getSessionDynFlags
-                    let dflags' = dflags { log_action = dieErr }
-                    setSessionDynFlags dflags'
-                    liftIO (newHscEnv dflags') >>= f
 
-runGhcM :: (HscEnv -> Ghc a) -> IO a
-runGhcM f = runGhc (Just libdir) (inDefaultEnv f)
-
-runIO :: IO a -> IO a
-runIO = runGhcM . const . liftIO
-
--- | Abort GHC when errors are encountered (eg. syntax errors)
-dieErr :: LogAction
-dieErr dflags severity srcSpan style msg =
-  let str    = show (runSDoc locMsg cntx)
-      locMsg = mkLocMessage severity srcSpan msg
-      cntx   = initSDocContext dflags style
-  in  error str
 
 -- | Get all top-level bindings from a list of Haskell files
-bindingsFrom :: [HsFile] -> IO [[[HsBindLR Name Name]]]
+bindingsFrom :: [HsFile] -> InSession [[[HsBindLR Name Name]]]
 bindingsFrom = parseFiles
 
 -- | Get the top-level bindings from a list of Haskell files, grouped by module
-parseFiles :: [HsFile] -> IO [[[HsBindLR Name Name]]]
-parseFiles fs = runGhcM $ (`renameFiles` fs)
+parseFiles :: [HsFile] -> InSession [[[HsBindLR Name Name]]]
+parseFiles fs = renameFiles fs
 
 -- | Get the top-level bindings from a parsed Haskell module
-renameAST ::    HscEnv
-             -> ModSummary
-             -> HsParsedModule
-             -> IO [HsBindLR Name Name]
-renameAST env ms pm = do (_, renamed) <- hscTypecheckRename env ms pm
-                         case renamed of
-                              Nothing            -> error "Did not rename"
-                              Just (x, _, _, _)  -> return (extractDefs x)
+renameAST :: ModSummary -> HsParsedModule -> InSession [HsBindLR Name Name]
+renameAST ms pm = inSession (\env -> do (_, renamed) <- liftIO $ hscTypecheckRename env ms pm
+                                        case renamed of
+                                             Nothing            -> error "Did not rename"
+                                             Just (x, _, _, _)  -> return (extractDefs x))
 
 -- | Get the top-level bindings from a loaded Haskell module
-renameMod ::    HscEnv
-             -> ModSummary
-             -> IO [HsBindLR Name Name]
-renameMod env ms = do pm <- hscParse env ms
-                      renameAST env ms pm
+renameMod :: ModSummary -> InSession [HsBindLR Name Name]
+renameMod ms = inSession (liftIO . (`hscParse` ms)) >>= renameAST ms
 
 -- | Extract top-level definitions from a module AST
 extractDefs :: HsGroup id -> [HsBindLR id id]
@@ -75,17 +50,13 @@ extractDefs g = let vals  = hs_valds g
                 in  unloc
 
 -- | Get a topologically sorted graph of Haskell modules from the given files.
-graphMods :: GhcMonad m => HscEnv -> [HsFile] -> m [[ModSummary]]
-graphMods env fs = do setSessionDynFlags (hsc_dflags env)
-                      mapM ((`guessTarget` Nothing) . unHs) fs >>= setTargets
-                      load LoadAllTargets
-                      graph <- depanal [] True
-                      let sorted = topSortModuleGraph True graph Nothing
-                      return (map flattenSCC sorted)
+graphMods :: [HsFile] -> InSession [[ModSummary]]
+graphMods fs = inSession (\env -> do mapM ((`guessTarget` Nothing) . unHs) fs >>= setTargets
+                                     load LoadAllTargets
+                                     graph <- depanal [] True
+                                     let sorted = topSortModuleGraph True graph Nothing
+                                     return (map flattenSCC sorted))
 
 -- | Parse and rename a list of Haskell files in a GHC monad
-renameFiles :: GhcMonad m => HscEnv
-                          -> [HsFile]
-                          -> m [[[HsBindLR Name Name]]]
-renameFiles env fs = do graph <- graphMods env fs
-                        mapM (mapM (liftIO . renameMod env)) graph
+renameFiles :: [HsFile] -> InSession [[[HsBindLR Name Name]]]
+renameFiles fs = graphMods fs >>= mapM (mapM renameMod)
