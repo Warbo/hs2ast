@@ -1,22 +1,58 @@
-module ML4HS.Tests.Parser where
+module ML4HS.Tests.Parser (tests) where
 
+import Control.Exception (SomeException)
 import GhcMonad
 import ML4HS.Parser
+import ML4HS.Types
 import ML4HS.Tests.Generators
+import GHC
 import Test.QuickCheck
-import Test.QuickCheck.Monadic (assert, monadicIO, pick, pre, run)
+import Test.QuickCheck.Monadic (assert, monadicIO, pick, pre, run, PropertyM)
+import Test.QuickCheck.Property
 import Test.Tasty
 import Test.Tasty.QuickCheck
 
 tests = testGroup "Parser Tests" [
           testGroup "Monadic QuickCheck" [
-
-            testProperty "No empty ModuleSummary" $
-              monadicIO $ do m <- pick arbHs
-                             g <- run $ runGhcM $ inDefaultEnv (`graphMods` [m])
-                             assert (not (null g))
-
-          , testProperty "Parse errors cause abort" $
-              monadicIO $ do m <- pick arbitrary
+            testProperty "No empty ModuleSummary"    (ioNE noEmptyModuleSummary)
+          , testProperty "Parse errors cause abort"  parseErrorsCauseAbort
+          , testProperty "Renamer runs"              (ioNE renamerRuns)
+          , testProperty "Renamer accepts files"     (ioNE canRenameFiles)
+          , testProperty "Parser accepts files"      (ioNE canParseFiles)
+          , testProperty "Bindings can be extracted" (ioNE canGetBindings)
           ]
         ]
+
+-- | IO test with non-empty list argument
+ioNE f (NonEmpty fs) = monadicIO (f (unique fs))
+
+noEmptyModuleSummary fs = do Right g <- go (`graphMods` fs)
+                             assert (not (null g))
+
+parseErrorsCauseAbort = monadicIO $ do
+  fs     <- pick (listOf1 arbBad)
+  result <- go (`graphMods` fs)
+  assert $ case result of
+                Left  _ -> True
+                Right _ -> False
+
+renamerRuns fs = do Right x <- go (`renameFiles` fs)
+                    _ <- return ()
+                    assert True
+
+canRenameFiles fs = do Right xs <- go (`renameFiles` fs)
+                       assert (not (null xs))
+
+canParseFiles fs = do bs <- run $ parseFiles fs
+                      assert (not (null bs))
+
+canGetBindings fs = do bs <- run $ bindingsFrom fs
+                       assert (not (null bs))
+
+-- | Run Ghc-wrapped computations in QuickCheck
+go :: (HscEnv -> Ghc a) -> PropertyM IO (Either SomeException a)
+go = run . sumExcept . runGhcM
+
+-- | Represent exceptions using a sum type
+sumExcept :: IO a -> IO (Either SomeException a)
+sumExcept f = protect (Left) (fmap Right f)

@@ -5,4 +5,5 @@ module Main where
 import System.Environment
 import ML4HS.Parser
 
-main = getArgs >>= graphFiles
+main = do args <- getArgs
+          parseFiles args

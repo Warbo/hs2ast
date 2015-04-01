@@ -29,4 +29,4 @@ test-suite test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests, src
   main-is:             Main.hs
-  build-depends:       base >= 4.7 && < 4.8, ghc, ghc-paths, QuickCheck, uniplate, tasty >= 0.7, tasty-quickcheck, directory, transformers
+  build-depends:       base >= 4.7 && < 4.8, ghc, ghc-paths, QuickCheck, uniplate, tasty >= 0.7, tasty-quickcheck, directory, transformers, containers
