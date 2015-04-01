@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module ML4HS.Sexpr where
 
@@ -7,22 +7,11 @@ import Data.Dynamic
 import Data.Typeable
 import Data.Generics.Uniplate.Data
 import HscTypes
+import ML4HS.Types
 import SrcLoc
 
 -- A simple rose tree for ASTs. We use tags of type 'a' instead of GHC's complex
 -- multitude of mutually-recursive types.
-
-data Sexpr a = Sx a [Sexpr a] deriving (Typeable, Data)
-
-instance Show (Sexpr String) where
-  show (Sx x xs) = "(" ++ unwords (x : map show xs) ++ ")"
-
-{-
-instance (Data a) => Show (Sexpr a) where
-  show (Sx x xs) = let h = showConstr (toConstr x)
-                       t = map show xs
-                   in  "(" ++ unwords (h:t) ++
--}
 
 -- Convert GHC's complicated AST types to Sexpr
 

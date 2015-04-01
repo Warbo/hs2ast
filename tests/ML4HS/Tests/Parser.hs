@@ -16,9 +16,6 @@ tests = testGroup "Parser Tests" [
           testGroup "Monadic QuickCheck" [
             testProperty "No empty ModuleSummary"    (ioNE noEmptyModuleSummary)
           , testProperty "Parse errors cause abort"  parseErrorsCauseAbort
-          , testProperty "Renamer runs"              (ioNE renamerRuns)
-          , testProperty "Renamer accepts files"     (ioNE canRenameFiles)
-          , testProperty "Parser accepts files"      (ioNE canParseFiles)
           , testProperty "Bindings can be extracted" (ioNE canGetBindings)
           ]
         ]
@@ -36,24 +33,13 @@ parseErrorsCauseAbort = monadicIO $ do
                 Left  _ -> True
                 Right _ -> False
 
-renamerRuns fs = do result <- go (renameFiles fs)
-                    case result of
-                         Right _ -> assert True
-                         Left  e -> showErr e
-
-canRenameFiles fs = do result <- go (renameFiles fs)
+canGetBindings fs = do result <- go (bindingsFrom fs)
                        case result of
                             Right xs -> assert (not (null xs))
                             Left  e  -> showErr e
 
-canParseFiles fs = do bs <- run $ runInSession (parseFiles fs)
-                      assert (not (null bs))
-
-canGetBindings fs = do bs <- run $ runInSession (bindingsFrom fs)
-                       assert (not (null bs))
-
 -- | Run Ghc-wrapped computations in QuickCheck
-go :: InSession a -> PropertyM IO (Either SomeException a)
+go :: Ghc a -> PropertyM IO (Either SomeException a)
 go = run . sumExcept . runInSession
 
 showErr e = liftIO (putStrLn "\nERROR:" >>
@@ -62,4 +48,4 @@ showErr e = liftIO (putStrLn "\nERROR:" >>
 
 -- | Represent exceptions using a sum type
 sumExcept :: IO a -> IO (Either SomeException a)
-sumExcept f = protect (Left) (fmap Right f)
+sumExcept f = protect Left (fmap Right f)

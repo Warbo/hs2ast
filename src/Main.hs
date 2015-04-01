@@ -7,4 +7,4 @@ import ML4HS.Parser
 import ML4HS.Types
 
 main = do args <- getArgs
-          runInSession (parseFiles (toHs args))
+          runInSession (bindingsFrom (toHs args))

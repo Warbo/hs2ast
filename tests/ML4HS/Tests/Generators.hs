@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module ML4HS.Tests.Generators (
    arbBad
@@ -17,6 +17,7 @@ import System.Directory
 import System.IO.Unsafe
 import TcEvidence
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 import Test.QuickCheck.Monadic
 
 -- Arbitrary instances
@@ -32,15 +33,25 @@ instance Arbitrary (HsModule RdrName) where
 instance Arbitrary HsFile where
   arbitrary = oneof (map return goodFiles)
 
+instance Arbitrary a => Arbitrary (Sexpr a) where
+  arbitrary = let f n = do x  <- arbitrary
+                           xs <- divideBetween f n
+                           return (Sx x xs)
+              in do n <- choose (0, 500)
+                    f n
+
 -- Generator combinators
 
-unique' lstOf gen len set | Set.size set >= len = return set
-unique' lstOf gen len set | otherwise           = do
-  xs <- lstOf gen
-  unique' lstOf gen len (Set.union set (Set.fromList xs))
+-- | Use a sized generator to generate a list of values whose combined size
+-- matches the given number.
+divideBetween :: (Int -> Gen a) -> Int -> Gen [a]
+divideBetween f 0 = return []
+divideBetween f n = do size <- choose (1, abs n)
+                       head <- f size
+                       tail <- divideBetween f (n - size)
+                       return (head : tail)
 
--- | Generate a list of values containing no duplicates. Note that dupes are
--- discarded, so the output length may be less than 'gen' provides.
+-- | Remove duplicates from a list. Will only be empty when the input is.
 unique :: (Ord a) => [a] -> [a]
 unique = Set.toList . Set.fromList
 
@@ -51,7 +62,7 @@ unique = Set.toList . Set.fromList
 -- b) Files can't be relied on anyway, since they're only accessible via Gen
 testFiles :: String -> [HsFile]
 testFiles d = let paths = unsafePerformIO (getDirectoryContents d)
-               in catMaybes . map (mkHs . (d ++)) $ paths
+               in mapMaybe (mkHs . (d ++)) paths
 
 -- | Haskell files
 goodFiles, badFiles :: [HsFile]
@@ -65,7 +76,8 @@ arbBad :: Gen HsFile
 arbBad = oneof (map return badFiles)
 
 -- Runs Ghc monad in IO monad in QuickCheck monad...
-go = run . runGhc (Just libdir)
+go = run . runInSession
 
--- Don't rely on these to be stable
-unsafeDynFlags = unsafePerformIO (runGhc (Just libdir) getSessionDynFlags)
+-- Don't rely on these to be stable across runs
+{-# NOINLINE unsafeDynFlags #-}
+unsafeDynFlags = unsafePerformIO (runInSession getSessionDynFlags)
