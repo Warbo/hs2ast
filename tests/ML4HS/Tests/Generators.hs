@@ -3,32 +3,22 @@
 module ML4HS.Tests.Generators (
    arbBad
  , unique
+ , gen
  ) where
 
 import ML4HS.Types
+import ML4HS.Tests.Generators.Haskell
+import Control.Applicative
 import Data.Maybe
-import BasicTypes
-import CoreSyn
-import DataCon
 import qualified Data.Set as Set
 import GHC
-import GHC.Paths
 import System.Directory
 import System.IO.Unsafe
-import TcEvidence
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Monadic
 
 -- Arbitrary instances
-
-instance Arbitrary Haskell where
-  arbitrary = return (H "f x = x")
-
-instance Arbitrary (HsModule RdrName) where
-  arbitrary = do H src <- arbitrary
-                 let (Right (_, L _ x)) = parser src unsafeDynFlags "QuickCheck"
-                 return x
 
 instance Arbitrary HsFile where
   arbitrary = oneof (map return goodFiles)
@@ -75,9 +65,15 @@ goodFiles, badFiles :: [HsFile]
 arbBad :: Gen HsFile
 arbBad = oneof (map return badFiles)
 
--- Runs Ghc monad in IO monad in QuickCheck monad...
+-- | Runs Ghc monad in IO monad in QuickCheck monad...
 go = run . runInSession
 
--- Don't rely on these to be stable across runs
+-- | Makes debugging easier
+gen n = let rounds = ceiling (fromIntegral n / 11.0)
+            chunks = vectorOf rounds arbitrary
+        in do samples <- sample' chunks
+              return (take n (concat samples))
+
+-- Don't rely on this to be stable across runs
 {-# NOINLINE unsafeDynFlags #-}
 unsafeDynFlags = unsafePerformIO (runInSession getSessionDynFlags)
