@@ -1,11 +1,14 @@
 module ML4HS.Tests.Parser (tests) where
 
-import Control.Exception (SomeException)
+import Control.Exception (SomeException, bracket)
 import GhcMonad
 import ML4HS.Parser
 import ML4HS.Types
 import ML4HS.Tests.Generators
 import GHC
+import System.IO
+import System.IO.Temp
+import System.Directory
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (assert, monadicIO, pick, pre, run, PropertyM)
 import Test.QuickCheck.Property
@@ -14,9 +17,10 @@ import Test.Tasty.QuickCheck
 
 tests = testGroup "Parser Tests" [
           testGroup "Monadic QuickCheck" [
-            testProperty "No empty ModuleSummary"    (ioNE noEmptyModuleSummary)
-          , testProperty "Parse errors cause abort"  parseErrorsCauseAbort
-          , testProperty "Bindings can be extracted" (ioNE canGetBindings)
+            testProperty "No empty ModuleSummary"     (ioNE noEmptyModuleSummary)
+          , testProperty "Parse errors cause abort"   parseErrorsCauseAbort
+          , testProperty "Bindings can be extracted"  (ioNE canGetBindings)
+          , testProperty "Generated code is parsable" (withHaskellFile parsePath)
           ]
         ]
 
@@ -33,6 +37,8 @@ parseErrorsCauseAbort = monadicIO $ do
                 Left  _ -> True
                 Right _ -> False
 
+parsePath p = runInSession (fmap (not . null) (bindingsFrom [p]))
+
 canGetBindings fs = do result <- go (bindingsFrom fs)
                        case result of
                             Right xs -> assert (not (null xs))
@@ -43,9 +49,22 @@ go :: Ghc a -> PropertyM IO (Either SomeException a)
 go = run . sumExcept . runInSession
 
 showErr e = liftIO (putStrLn "\nERROR:" >>
-                    print e           >>
-                    putStrLn "/ERROR") >> assert False
+                    print e             >>
+                    putStrLn "/ERROR")  >> assert False
 
 -- | Represent exceptions using a sum type
 sumExcept :: IO a -> IO (Either SomeException a)
 sumExcept f = protect Left (fmap Right f)
+
+--withHaskellFile :: (HsFile -> Property) -> Haskell -> Property
+withHaskellFile f (H c) = monadicIO $ do
+  hs <- run $ do (p, h) <- openTempFile "/tmp" "ml4hs_test.hs"
+                 hPutStr h c
+                 hClose h
+                 case mkHs p of
+                      Just p' -> return p'
+  result <- run $ sumExcept (f hs)
+  run $ removeFile (unHs hs)
+  case result of
+       Right b -> assert b
+       Left  e -> showErr e

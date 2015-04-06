@@ -23,7 +23,7 @@ import MonadUtils
 import Outputable
 
 -- | Haskell code
-newtype Haskell = H String
+newtype Haskell = H String deriving Show
 
 -- | Haskell file paths
 newtype HsFile = Hs FilePath  deriving (Show, Eq, Ord)
