@@ -2,6 +2,7 @@ module ML4HS.Parser where
 
 import Bag
 import Control.Monad
+import Data.Maybe
 import Digraph
 import DynFlags
 import ErrUtils
@@ -16,6 +17,9 @@ import HscMain
 import HscTypes
 import Outputable
 import ML4HS.Types
+import System.IO
+import System.Directory
+import Control.Monad.IO.Class
 
 -- | Get the top-level bindings from a parsed Haskell module
 renameAST :: ModSummary -> HsParsedModule -> Ghc [HsBindLR Name Name]
@@ -52,3 +56,14 @@ graphMods fs = do mapM ((`guessTarget` Nothing) . unHs) fs >>= setTargets
 -- | Get all top-level bindings from a list of Haskell files
 bindingsFrom :: [HsFile] -> Ghc [[[HsBindLR Name Name]]]
 bindingsFrom fs = graphMods fs >>= mapM (mapM renameMod)
+
+withTempHaskell :: MonadIO m => Haskell -> (HsFile -> m a) -> m a
+withTempHaskell (H s) f = do (p, h) <- liftIO $ openTempFile "/tmp" "ml4hs_temp.hs"
+                             liftIO $ hPutStr h s >> hClose h
+                             result <- f (fromJust (mkHs p))
+                             liftIO $ removeFile p
+                             return result
+
+-- | Parse a Haskell string (using a temporary file!)
+parseHaskell :: Haskell -> Ghc [[[HsBindLR Name Name]]]
+parseHaskell h = withTempHaskell h (\p -> bindingsFrom [p])

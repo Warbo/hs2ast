@@ -12,3 +12,6 @@ tests = testGroup "Sexpression tests"
 
 intToSexpr :: Int -> Bool
 intToSexpr i = toSs i == Sx (show i) []
+
+haskellConverts :: Haskell -> Bool
+haskellConverts (H x) =

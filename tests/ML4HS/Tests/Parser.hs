@@ -20,7 +20,7 @@ tests = testGroup "Parser Tests" [
             testProperty "No empty ModuleSummary"     (ioNE noEmptyModuleSummary)
           , testProperty "Parse errors cause abort"   parseErrorsCauseAbort
           , testProperty "Bindings can be extracted"  (ioNE canGetBindings)
-          , testProperty "Generated code is parsable" (withHaskellFile parsePath)
+          , testProperty "Generated code is parsable" genCodeWillParse
           ]
         ]
 
@@ -56,15 +56,9 @@ showErr e = liftIO (putStrLn "\nERROR:" >>
 sumExcept :: IO a -> IO (Either SomeException a)
 sumExcept f = protect Left (fmap Right f)
 
---withHaskellFile :: (HsFile -> Property) -> Haskell -> Property
-withHaskellFile f (H c) = monadicIO $ do
-  hs <- run $ do (p, h) <- openTempFile "/tmp" "ml4hs_test.hs"
-                 hPutStr h c
-                 hClose h
-                 case mkHs p of
-                      Just p' -> return p'
-  result <- run $ sumExcept (f hs)
-  run $ removeFile (unHs hs)
-  case result of
-       Right b -> assert b
-       Left  e -> showErr e
+withHaskellFile f h = do result <- run $ withTempHaskell h (sumExcept . f)
+                         case result of
+                              Right b -> assert  b
+                              Left  e -> showErr e
+
+genCodeWillParse h = monadicIO $ withHaskellFile parsePath h
