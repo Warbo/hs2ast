@@ -1,67 +1,43 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, RankNTypes, DeriveDataTypeable #-}
 
 module ML4HS.Sexpr where
 
+import HsBinds
+import Data.Generics
+import Name
 import Data.Data
-import Data.Dynamic
-import Data.Typeable
-import Data.Generics.Uniplate.Data
-import HscTypes
+import Data.Functor.Identity
 import ML4HS.Types
-import SrcLoc
+import Data.Maybe
+import Control.Monad
 
--- A simple rose tree for ASTs. We use tags of type 'a' instead of GHC's complex
--- multitude of mutually-recursive types.
+-- Useful for discarding a load of information from GHC's complex AST types
 
--- Convert GHC's complicated AST types to Sexpr
+dumpBinding :: HsBindLR Name Name -> Maybe (Sexpr String)
+dumpBinding = simpleAst . dummyTypes
 
-toSs :: Data a => a -> Sexpr String
-toSs x = Sx (show (toConstr x)) (gmapQ toSs x)
+excludedTypes, unwrapTypes :: [TypeRep]
+excludedTypes = [
+                ]
+unwrapTypes   = [
+                ]
 
---toSexpr :: (Typeable a) => a -> Sexpr Dynamic
---toSexpr x = Sx (toDyn x) [] -- (map toSexpr (childrenBi x))
+-- | Convert Data instances to s-expressions
+toSexp :: Data a => [TypeRep] -> [TypeRep] -> a -> Maybe (Sexpr String)
+toSexp ex un x = let tail = gmapQ (toSexp ex un) x
+                     head = toSx ex un x
+                 in  case head of
+                          Nothing -> Nothing
+                          Just y  -> Just (mkNode (y : catMaybes tail))
 
-{-
-toSexpr :: Data a => a -> Sexpr Dynamic
-toSexpr x = let m = gmapQ toSexpr x
-            in  Sx (toDyn x) m
+simpleAst :: Data a => a -> Maybe (Sexpr String)
+simpleAst = toSexp excludedTypes unwrapTypes
 
-stripLocations :: Sexpr Dynamic -> Sexpr Dynamic
-stripLocations (Sx x xs) = let to   = unLoc
-                               from = fromDynamic
-                           in case from x of
-                                   Nothing -> Sx x (map stripLocations xs)
-                                   Just x' -> toSexpr (to x')
--}
---class (Typeable a, Data a) => Sexpressible a where
---  toSexpr2 :: a -> Sexpr Dynamic
---  toSexpr2 x = Sx (toDyn x) . map toSexpr . childrenBi $ x
-
---instance  => Sexpressible a where
---  toSexpr x = Sx (show x) . map toSexpr . childrenBi $ x
-
-{-
-__ = undefined
-
-keepTypes = [
-              typeOf (__ :: Pat   Name)
-            --, typeOf (__ :: Match Name)
-            ]
-
-keepers x = [y | y <- universe x, typeOf y `elem` keepTypes]
-
-locateds x = [y | L _ y <- universe x]
-
-dump :: Uniplate a => a -> String
-dump = para (\_ cs -> concat (["("] ++ cs ++ [")"]))
-
-{-
---genDump :: (Uniplate on) => (on -> [String] -> String) -> on -> String
-genDump = let
-          in  para
-
---dumpDef (FunBind )
--}
-
---extractDefs :: HsGroup Name -> HsValBinds Name
--}
+toSx :: Data a => [TypeRep] -> [TypeRep] -> a -> Maybe (Sexpr String)
+toSx ex un x = let s = show (toConstr x)
+                   t = typeRep [x]
+               in  if t `elem` ex
+                      then Nothing
+                      else Just (if t `elem` un
+                                    then mkNode []
+                                    else mkLeaf s)

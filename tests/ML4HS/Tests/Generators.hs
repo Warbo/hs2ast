@@ -10,6 +10,7 @@ import ML4HS.Types
 import ML4HS.Tests.Generators.Haskell
 import Control.Applicative
 import Data.Maybe
+import Data.Data
 import qualified Data.Set as Set
 import GHC
 import System.Directory
@@ -23,12 +24,10 @@ import Test.QuickCheck.Monadic
 instance Arbitrary HsFile where
   arbitrary = oneof (map return goodFiles)
 
-instance Arbitrary a => Arbitrary (Sexpr a) where
-  arbitrary = let f n = do x  <- arbitrary
-                           xs <- divideBetween f n
-                           return (Sx x xs)
-              in do n <- choose (0, 500)
-                    f n
+instance (Data a, Arbitrary a) => Arbitrary (Sexpr a) where
+  arbitrary = let f 0 = mkLeaf <$> arbitrary
+                  f n = mkNode <$> divideBetween f n
+              in choose (0, 500) >>= f
 
 -- Generator combinators
 

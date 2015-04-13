@@ -1,15 +1,23 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module ML4HS.Types (
    Haskell(H)
  , HsFile()
- , Sexpr(Sx)
+ , Sexpr()
+ , mkLeaf
+ , mkNode
+ , unExpr
  , mkHs
  , unHs
  , toHs
+ , dummyTypes
  , runInSession
  , runGhc
  ) where
 
 import Control.Applicative
+import Data.Data
+import Data.Generics.Uniplate.Data
 import Data.Maybe
 import DynFlags
 import ErrUtils
@@ -21,9 +29,14 @@ import HscMain
 import HscTypes
 import MonadUtils
 import Outputable
+import TypeRep
+
+-- Haskell code
 
 -- | Haskell code
 newtype Haskell = H String deriving Show
+
+-- Haskell files, with smart constructors
 
 -- | Haskell file paths
 newtype HsFile = Hs FilePath  deriving (Show, Eq, Ord)
@@ -43,35 +56,47 @@ toHs = mapMaybe mkHs
 unHs :: HsFile -> FilePath
 unHs (Hs f) = f
 
+-- ASTs, with smart constructors
+
 -- | Arbitrary rose trees
-data Sexpr a = Sx a [Sexpr a] deriving (Eq)
+data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
+
+mkLeaf :: Data a => a -> Sexpr a
+mkLeaf x = Leaf (dummyTypes x)
+
+mkNode :: Data a => [Sexpr a] -> Sexpr a
+mkNode xs = Node (dummyTypes xs)
+
+unExpr :: Data a => Sexpr a -> Either a [Sexpr a]
+unExpr (Leaf x)  = Left  (dummyTypes x)
+unExpr (Node xs) = Right (dummyTypes xs)
+
+-- | Replace all Types in an AST with a dummy, to avoid pre-typecheck errors
+dummyTypes :: Data a => a -> a
+dummyTypes = transformBi (const (LitTy (NumTyLit 0)))
 
 instance Functor Sexpr where
-  fmap f (Sx x xs) = Sx (f x) (map (fmap f) xs)
+  fmap f (Leaf x)  = Leaf (f x)
+  fmap f (Node xs) = Node (map (fmap f) xs)
 
 instance Show a => Show (Sexpr a) where
-  show (Sx x xs) = "(" ++ unwords (show x : map show xs) ++ ")"
+  show (Leaf x)  = "(" ++ show x ++ ")"
+  show (Node xs) = "(" ++ unwords (map show xs) ++ ")"
+
+-- Wrap up the dynamically-dangerous GHC API
 
 -- | Use this to start 'Ghc' computations. It is less flexible than 'runGhc',
 -- but avoids session-related runtime errors.
 runInSession :: Ghc a -> IO a
 runInSession = GHC.runGhc (Just libdir) . inDefaultEnv
 
--- | Tell GHC to abort on errors
-setDie = let die f = f { log_action = dieErr }
-         in  getSessionDynFlags >>= GHC.setSessionDynFlags . die
+dieErr flg lvl loc fmt msg = error (show (runSDoc (mkLocMessage lvl loc msg)
+                                                  (initSDocContext flg fmt)))
 
--- | Run a GHC computation, aborting on errors
-inDefaultEnv :: Ghc a -> Ghc a
-inDefaultEnv = (setDie >>)
-
--- | Abort GHC when errors are encountered (eg. syntax errors)
-dieErr :: LogAction
-dieErr dflags severity srcSpan style msg =
-  let str    = show (runSDoc locMsg cntx)
-      locMsg = mkLocMessage severity srcSpan msg
-      cntx   = initSDocContext dflags style
-  in  error str
+inDefaultEnv x = do f <- getSessionDynFlags
+                    GHC.setSessionDynFlags (f { log_action = dieErr
+                                              , ghcLink = LinkInMemory})
+                    x
 
 -- Clobber runGhc, to make avoiding our API slightly harder
 

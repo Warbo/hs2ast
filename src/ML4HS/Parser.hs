@@ -58,12 +58,14 @@ bindingsFrom :: [HsFile] -> Ghc [[[HsBindLR Name Name]]]
 bindingsFrom fs = graphMods fs >>= mapM (mapM renameMod)
 
 withTempHaskell :: MonadIO m => Haskell -> (HsFile -> m a) -> m a
-withTempHaskell (H s) f = do (p, h) <- liftIO $ openTempFile "/tmp" "ml4hs_temp.hs"
-                             liftIO $ hPutStr h s >> hClose h
-                             result <- f (fromJust (mkHs p))
-                             liftIO $ removeFile p
-                             return result
+withTempHaskell (H s) f = do
+  p <- liftIO $ bracket (openTempFile "/tmp" "ml4hs_temp.hs")
+                        (\(p, h) -> hClose h)
+                        (\(p, h) -> hPutStr h s >> return p)
+  result <- f (fromJust (mkHs p))
+  liftIO $ removeFile p
+  return result
 
 -- | Parse a Haskell string (using a temporary file!)
 parseHaskell :: Haskell -> Ghc [[[HsBindLR Name Name]]]
-parseHaskell h = withTempHaskell h (\p -> bindingsFrom [p])
+parseHaskell h = fmap dummyTypes $ withTempHaskell h (\p -> bindingsFrom [p])
