@@ -21,8 +21,7 @@ tests = testGroup "Sexpression tests"
 intToSexpr :: Int -> Bool
 intToSexpr i = toSx [] [] i == Just (mkLeaf (show i))
 
-haskellConverts h = let walk x = True
-                        walk x = case unExpr x of
+haskellConverts h = let walk x = case unExpr x of
                                       Left  x  -> True
                                       Right xs -> all walk xs
                     in  monadicIO $ do
