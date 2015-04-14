@@ -31,15 +31,6 @@ instance (Data a, Arbitrary a) => Arbitrary (Sexpr a) where
 
 -- Generator combinators
 
--- | Use a sized generator to generate a list of values whose combined size
--- matches the given number.
-divideBetween :: (Int -> Gen a) -> Int -> Gen [a]
-divideBetween f 0 = return []
-divideBetween f n = do size <- choose (1, abs n)
-                       head <- f size
-                       tail <- divideBetween f (n - size)
-                       return (head : tail)
-
 -- | Remove duplicates from a list. Will only be empty when the input is.
 unique :: (Ord a) => [a] -> [a]
 unique = Set.toList . Set.fromList
@@ -76,3 +67,12 @@ gen n = let rounds = ceiling (fromIntegral n / 11.0)
 -- Don't rely on this to be stable across runs
 {-# NOINLINE unsafeDynFlags #-}
 unsafeDynFlags = unsafePerformIO (runInSession getSessionDynFlags)
+
+-- | Use a sized generator to generate a list of values whose combined size
+-- matches the given number.
+divideBetween :: (Int -> Gen a) -> Int -> Gen [a]
+divideBetween f 0 = return []
+divideBetween f n = do size <- choose (1, abs n)
+                       head <- f size
+                       tail <- divideBetween f (n - size)
+                       return (head : tail)

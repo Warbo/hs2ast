@@ -33,11 +33,13 @@ toSexp ex un x = let tail = gmapQ (toSexp ex un) x
 simpleAst :: Data a => a -> Maybe (Sexpr String)
 simpleAst = toSexp excludedTypes unwrapTypes
 
+strConstr :: Data a => a -> String
+strConstr = show . toConstr
+
 toSx :: Data a => [TypeRep] -> [TypeRep] -> a -> Maybe (Sexpr String)
-toSx ex un x = let s = show (toConstr x)
-                   t = typeRep [x]
+toSx ex un x = let t = typeRep [x]
+                   n = mkNode []
+                   l = mkLeaf (strConstr x)
                in  if t `elem` ex
                       then Nothing
-                      else Just (if t `elem` un
-                                    then mkNode []
-                                    else mkLeaf s)
+                      else Just (if t `elem` un then n else l)

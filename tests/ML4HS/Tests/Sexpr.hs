@@ -2,6 +2,7 @@ module ML4HS.Tests.Sexpr (tests) where
 
 import Debug.Trace
 import Data.Typeable
+import Data.Data
 import Control.Applicative
 import ML4HS.Parser
 import ML4HS.Sexpr
@@ -13,9 +14,10 @@ import Test.QuickCheck.Monadic
 
 tests = testGroup "Sexpression tests"
           [
-            testProperty "Ints convert nicely" intToSexpr
+            testProperty "Ints convert nicely"     intToSexpr
           , testProperty "Haskell converts nicely" haskellConverts
-          --, testProperty "Can strip from pairs" prodStripped
+          , testProperty "Can strip from pairs"    prodStripped
+          , testProperty "Can strip from sums"     sumStripped
           ]
 
 intToSexpr :: Int -> Bool
@@ -30,9 +32,20 @@ haskellConverts h = let walk x = case unExpr x of
                                Nothing  -> assert False
                                Just ast -> assert (walk ast)
 
-{-
+-- Simplified Sexpr builders; don't perform generic type-matching stuff
+sLeaf :: Data a => a -> Sexpr String
+sLeaf = mkLeaf . strConstr
+
 prodStripped :: Int -> String -> Bool
-prodStripped a b = let expected = Sx (show (a, b)) [Sx (show a) []]
-                       result   = strippedSexpr show [typeRep [b]] (a, b)
-                   in  trace (show [result, Just expected]) $ result == Just expected
--}
+prodStripped a b = let expected = mkNode [sLeaf (a, b),
+                                          mkNode [sLeaf a]]
+                       result   = toSexp [typeRep [b]] [] (a, b)
+                   in  result == Just expected
+
+sumStripped :: Either Int String -> Bool
+sumStripped x = let inner    = case x of
+                                    Left  i -> []
+                                    Right s -> [mkNode [sLeaf s]]
+                    expected = Just (mkNode (sLeaf x : inner))
+                    result   = toSexp [typeRep [0 :: Int]] [] x
+                in  trace (show [result, expected]) $ result == expected
