@@ -47,7 +47,8 @@ extractDefs g = let vals  = hs_valds g
 
 -- | Get a topologically sorted graph of Haskell modules from the given files.
 graphMods :: [HsFile] -> Ghc [[ModSummary]]
-graphMods fs = do mapM ((`guessTarget` Nothing) . unHs) fs >>= setTargets
+graphMods fs = do targets <- mapM ((`guessTarget` Nothing) . unHs) fs
+                  mapM_ addTarget targets
                   load LoadAllTargets
                   graph <- depanal [] True
                   let sorted = topSortModuleGraph True graph Nothing

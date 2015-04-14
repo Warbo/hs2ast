@@ -1,4 +1,4 @@
-module ML4HS.Tests.Sexpr (tests) where
+module ML4HS.Tests.Sexpr (impureTests, pureTests) where
 
 import Debug.Trace
 import Data.Typeable
@@ -12,19 +12,20 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.QuickCheck.Monadic
 
-tests = testGroup "Sexpression tests"
-          [
-            testProperty "Ints convert nicely"     intToSexpr
-          , testProperty "Haskell converts nicely" haskellConverts
-          , testProperty "Can strip first"         prodStripL
-          , testProperty "Can strip second"        prodStripR
-          , testProperty "Can keep first"          prodKeepL
-          , testProperty "Can keep second"         prodKeepR
-          , testProperty "Can strip left"          sumStripL
-          , testProperty "Can strip right"         sumStripR
-          , testProperty "Can keep left"           sumKeepL
-          , testProperty "Can keep right"          sumKeepR
-          ]
+impureTests = testGroup "Monadic s-expression tests" [
+                testProperty "Haskell converts nicely" haskellConverts
+              ]
+pureTests   = testGroup "Pure s-expression tests" [
+                  testProperty "Ints convert nicely" intToSexpr
+                , testProperty "Can strip first"     prodStripL
+                , testProperty "Can strip second"    prodStripR
+                , testProperty "Can keep first"      prodKeepL
+                , testProperty "Can keep second"     prodKeepR
+                , testProperty "Can strip left"      sumStripL
+                , testProperty "Can strip right"     sumStripR
+                , testProperty "Can keep left"       sumKeepL
+                , testProperty "Can keep right"      sumKeepR
+                ]
 
 intToSexpr :: Int -> Bool
 intToSexpr i = toSx [] [] i == Just (mkLeaf (show i))

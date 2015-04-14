@@ -94,8 +94,12 @@ dieErr flg lvl loc fmt msg = error (show (runSDoc (mkLocMessage lvl loc msg)
                                                   (initSDocContext flg fmt)))
 
 inDefaultEnv x = do f <- getSessionDynFlags
-                    GHC.setSessionDynFlags (f { log_action = dieErr
-                                              , ghcLink = LinkInMemory})
+                    GHC.setSessionDynFlags (f {
+                        log_action   = dieErr
+                      , ghcLink      = LinkInMemory
+                      , hscTarget    = HscInterpreted
+                      , packageFlags = [ExposePackage "ghc"]
+                      })
                     x
 
 -- Clobber runGhc, to make avoiding our API slightly harder
