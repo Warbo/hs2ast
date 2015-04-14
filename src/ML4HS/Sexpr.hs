@@ -43,3 +43,12 @@ toSx ex un x = let t = typeRep [x]
                in  if t `elem` ex
                       then Nothing
                       else Just (if t `elem` un then n else l)
+
+-- | Fold an Sexpr
+foldsx :: (a -> b) -> ([b] -> b) -> Sexpr a -> b
+foldsx leaf node sx = case unExpr sx of
+  Left  x  -> leaf x
+  Right xs -> node (map (foldsx leaf node) xs)
+
+anysx :: (a -> Bool) -> Sexpr a -> Bool
+anysx f = foldsx f (any id)

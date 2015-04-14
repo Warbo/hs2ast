@@ -16,8 +16,14 @@ tests = testGroup "Sexpression tests"
           [
             testProperty "Ints convert nicely"     intToSexpr
           , testProperty "Haskell converts nicely" haskellConverts
-          , testProperty "Can strip from pairs"    prodStripped
-          , testProperty "Can strip from sums"     sumStripped
+          , testProperty "Can strip first"         prodStripL
+          , testProperty "Can strip second"        prodStripR
+          , testProperty "Can keep first"          prodKeepL
+          , testProperty "Can keep second"         prodKeepR
+          , testProperty "Can strip left"          sumStripL
+          , testProperty "Can strip right"         sumStripR
+          , testProperty "Can keep left"           sumKeepL
+          , testProperty "Can keep right"          sumKeepR
           ]
 
 intToSexpr :: Int -> Bool
@@ -36,16 +42,42 @@ haskellConverts h = let walk x = case unExpr x of
 sLeaf :: Data a => a -> Sexpr String
 sLeaf = mkLeaf . strConstr
 
-prodStripped :: Int -> String -> Bool
-prodStripped a b = let expected = mkNode [sLeaf (a, b),
-                                          mkNode [sLeaf a]]
-                       result   = toSexp [typeRep [b]] [] (a, b)
-                   in  result == Just expected
+sList :: Data a => [a] -> Sexpr String
+sList l@[]     = sLeaf l
+sList l@(x:xs) = mkNode [sLeaf l, sList xs]
 
-sumStripped :: Either Int String -> Bool
-sumStripped x = let inner    = case x of
-                                    Left  i -> []
-                                    Right s -> [mkNode [sLeaf s]]
-                    expected = Just (mkNode (sLeaf x : inner))
-                    result   = toSexp [typeRep [0 :: Int]] [] x
-                in  trace (show [result, expected]) $ result == expected
+anyTrue = anysx ("True" ==)
+
+trB = typeRep [True]
+
+prodStrip :: (Data a, Data b) => a -> b -> Bool
+prodStrip a b = let Just result = toSexp [trB] [] (a, b)
+                in  not (anyTrue result)
+
+prodKeep :: (Data a, Data b) => a -> b -> Bool
+prodKeep a b = let Just result = toSexp [] [] (a, b)
+                   in anyTrue result
+
+prodStripL, prodStripR :: Bool -> String -> Bool
+prodStripL a b = prodStrip a b
+prodStripR a b = prodStrip b a
+
+prodKeepL, prodKeepR :: String -> Bool -> Bool
+prodKeepL a b = prodKeep a b == b
+prodKeepR a b = prodKeep b a == b
+
+sumStripL :: Either Bool String -> Bool
+sumStripL x = let Just result = toSexp [trB] [] x
+              in  not (anyTrue result)
+
+sumStripR :: Either String Bool -> Bool
+sumStripR x = let Just result = toSexp [trB] [] x
+              in  not (anyTrue result)
+
+sumKeepL :: Either Bool String -> Bool
+sumKeepL x = let Just result = toSexp [] [] x
+             in  anyTrue result == (x == Left True)
+
+sumKeepR :: Either String Bool -> Bool
+sumKeepR x = let Just result = toSexp [] [] x
+             in  anyTrue result == (x == Right True)

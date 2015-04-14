@@ -67,9 +67,9 @@ mkLeaf x = Leaf (dummyTypes x)
 mkNode :: Data a => [Sexpr a] -> Sexpr a
 mkNode xs = Node (dummyTypes xs)
 
-unExpr :: Data a => Sexpr a -> Either a [Sexpr a]
-unExpr (Leaf x)  = Left  (dummyTypes x)
-unExpr (Node xs) = Right (dummyTypes xs)
+unExpr :: Sexpr a -> Either a [Sexpr a]
+unExpr (Leaf x)  = Left  x
+unExpr (Node xs) = Right xs
 
 -- | Replace all Types in an AST with a dummy, to avoid pre-typecheck errors
 dummyTypes :: Data a => a -> a
