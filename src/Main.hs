@@ -1,17 +1,13 @@
 module Main where
 
-import Language.Haskell.Exts.Extension
-import Language.Haskell.Exts.Parser
-import Language.Haskell.Exts.SrcLoc
-import Language.Haskell.Exts.Syntax
+import System.Environment
+import ML4HS.Parser
+import ML4HS.Types
+import ML4HS.Sexpr
 
-parseFile :: String -> IO Module
-parseFile f = let mode  = defaultParseMode {parseFilename=f}
-                  parse = parseModuleWithMode mode
-              in  fmap (fromParseResult . parse) (readFile f)
-
-parseFiles = mapM parseFile
-
-dump (Module _ _ _ _ _ _ ds) = show ds
-
-main = parseFiles ["tests/data/arith.hs"]
+main = do args     <- getArgs
+          if null args
+             then error "Please provide Haskell filenames as arguments"
+             else return ()
+          bindings <- runInSession (bindingsFrom (toHs args))
+          mapM_ (mapM_ (mapM_ (print . dumpBinding))) bindings
