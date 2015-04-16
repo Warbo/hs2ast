@@ -1,19 +1,22 @@
 module Main where
 
 import           Test.Tasty (defaultMain, testGroup)
+import qualified ML4HS.Tests.ML4HS  as M
 import qualified ML4HS.Tests.Parser as P
 import qualified ML4HS.Tests.Sexpr  as S
 
 -- Separate slow monadic tests from pure ones, to allow toggling speed/accuracy
 
 impureTests = testGroup "Monadic tests" [
-                  S.impureTests
-                , P.impureTests
+                --  S.impureTests
+                --, P.impureTests
+                {-,-} M.impureTests
                 ]
 
 pureTests   = testGroup "Pure tests" [
                   S.pureTests
                 , P.pureTests
+                , M.pureTests
                 ]
 
 main :: IO ()

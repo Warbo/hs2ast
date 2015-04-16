@@ -1,7 +1,9 @@
 module ML4HS.Parser where
 
+import CoreSyn
 import Bag
 import Control.Monad
+import Control.Applicative
 import Data.Maybe
 import Digraph
 import DynFlags
@@ -58,6 +60,26 @@ graphMods fs = do targets <- mapM ((`guessTarget` Nothing) . unHs) fs
 bindingsFrom :: [HsFile] -> Ghc [[[HsBindLR Name Name]]]
 bindingsFrom fs = graphMods fs >>= mapM (mapM renameMod)
 
+bindingsFrom' :: [HsFile] -> Ghc [HsBindLR Name Name]
+bindingsFrom' fs = do bs <- bindingsFrom fs
+                      return (concat (concat bs))
+
+showSdoc x = do flags <- getSessionDynFlags
+                return (show (runSDoc (ppr x) (initSDocContext flags defaultDumpStyle)))
+
+-- | Extract the 'Name' from a binding
+namedBinding :: HsBindLR Name Name -> Maybe (Name, HsBindLR Name Name)
+namedBinding e@(FunBind _ _ _ _ _ _) = Just (unLoc (fun_id e), e)
+namedBinding e@(VarBind _ _ _)       = Just (var_id e, e)
+namedBinding _                       = Nothing
+
+strBinding (n, e) = do n' <- showSdoc n
+                       return (n', e)
+
+namedBindingsFrom :: [HsFile] -> Ghc [(Name, HsBindLR Name Name)]
+namedBindingsFrom fs = do bindings <- bindingsFrom' fs
+                          return (mapMaybe namedBinding bindings)
+
 withTempHaskell :: MonadIO m => Haskell -> (HsFile -> m a) -> m a
 withTempHaskell (H s) f = do
   p <- liftIO $ bracket (openTempFile "/tmp" "ml4hs_temp.hs")
@@ -70,3 +92,9 @@ withTempHaskell (H s) f = do
 -- | Parse a Haskell string (using a temporary file!)
 parseHaskell :: Haskell -> Ghc [[[HsBindLR Name Name]]]
 parseHaskell h = fmap dummyTypes $ withTempHaskell h (\p -> bindingsFrom [p])
+
+coreVals :: HsFile -> Ghc CoreProgram
+coreVals f = cm_binds <$> compileToCoreSimplified (unHs f)
+
+coreTypes :: HsFile -> Ghc TypeEnv
+coreTypes f = cm_types <$> compileToCoreSimplified (unHs f)
