@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module ML4HS.Types (
+module HS2AST.Types (
    Haskell(H)
  , HsFile()
  , Sexpr()

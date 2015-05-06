@@ -1,11 +1,11 @@
-module ML4HS where
+module HS2AST where
 
 import Control.Applicative
 import Data.Maybe
 import GhcMonad
-import ML4HS.Parser
-import ML4HS.Sexpr
-import ML4HS.Types
+import HS2AST.Parser
+import HS2AST.Sexpr
+import HS2AST.Types
 
 getAsts :: [HsFile] -> Ghc [Sexpr String]
 getAsts fs = do bindings <- bindingsFrom fs

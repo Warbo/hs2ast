@@ -1,10 +1,7 @@
 module Main where
 
 import System.Environment
-import ML4HS
---import ML4HS.Parser
---import ML4HS.Types
---import ML4HS.Sexpr
+import HS2AST
 
 main = do args <- getArgs
           if null args

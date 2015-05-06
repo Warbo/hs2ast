@@ -3,13 +3,13 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module ML4HS.Tests.Generators.Haskell where
+module HS2AST.Tests.Generators.Haskell where
 
 import Debug.Trace
 import Control.Applicative
 import Data.Maybe
 import Language.Haskell.Generate
-import ML4HS.Types
+import HS2AST.Types
 import Test.QuickCheck
 
 -- Generate Haskell code by pretty-printing generated Haskell modules, created

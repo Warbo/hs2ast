@@ -1,10 +1,10 @@
-module ML4HS.Tests.Parser (pureTests, impureTests) where
+module HS2AST.Tests.Parser (pureTests, impureTests) where
 
 import Control.Exception (SomeException, bracket)
 import GhcMonad
-import ML4HS.Parser
-import ML4HS.Types
-import ML4HS.Tests.Generators
+import HS2AST.Parser
+import HS2AST.Types
+import HS2AST.Tests.Generators
 import GHC
 import System.IO
 import System.IO.Temp

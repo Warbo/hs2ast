@@ -5,7 +5,7 @@
 }:
 
 cabal.mkDerivation (self: {
-  pname = "ML4HS";
+  pname = "HS2AST";
   version = "0.1.0.0";
   src = ./.;
   isLibrary = false;
@@ -16,8 +16,8 @@ cabal.mkDerivation (self: {
     temporary transformers uniplate
   ];
   meta = {
-    homepage = "http://gitorious.org/ml4hs";
-    description = "Machine learning applied to Haskell source code";
+    homepage = "http://chriswarbo.net/essays/repos/hs2ast";
+    description = "Dumps syntax trees of Haskell source code";
     license = "GPL";
     platforms = self.ghc.meta.platforms;
   };

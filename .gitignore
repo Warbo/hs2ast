@@ -1,5 +1,5 @@
 *.hi
 *.o
 tests/data/arith
-./ML4HS
+./HS2AST
 dist

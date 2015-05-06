@@ -1,13 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module ML4HS.Tests.Generators (
+module HS2AST.Tests.Generators (
    arbBad
  , unique
  , gen
  ) where
 
-import ML4HS.Types
-import ML4HS.Tests.Generators.Haskell
+import HS2AST.Types
+import HS2AST.Tests.Generators.Haskell
 import Control.Applicative
 import Data.Maybe
 import Data.Data

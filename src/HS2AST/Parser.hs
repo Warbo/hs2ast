@@ -1,4 +1,4 @@
-module ML4HS.Parser where
+module HS2AST.Parser where
 
 import CoreSyn
 import Bag
@@ -18,7 +18,7 @@ import Name
 import HscMain
 import HscTypes
 import Outputable
-import ML4HS.Types
+import HS2AST.Types
 import System.IO
 import System.Directory
 import Control.Monad.IO.Class
@@ -85,7 +85,7 @@ namedBindingsFrom fs = do bindings <- bindingsFrom' fs
 
 withTempHaskell :: MonadIO m => Haskell -> (HsFile -> m a) -> m a
 withTempHaskell (H s) f = do
-  p <- liftIO $ bracket (openTempFile "/tmp" "ml4hs_temp.hs")
+  p <- liftIO $ bracket (openTempFile "/tmp" "hs2ast_temp.hs")
                         (\(p, h) -> hClose h)
                         (\(p, h) -> hPutStr h s >> return p)
   result <- f (fromJust (mkHs p))

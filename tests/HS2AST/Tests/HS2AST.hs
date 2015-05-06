@@ -1,8 +1,8 @@
-module ML4HS.Tests.ML4HS where
+module HS2AST.Tests.HS2AST where
 
-import ML4HS
-import ML4HS.Types
-import ML4HS.Tests.Generators
+import HS2AST
+import HS2AST.Types
+import HS2AST.Tests.Generators
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (assert, monadicIO, pick, pre, run, PropertyM)
 import Test.QuickCheck.Property

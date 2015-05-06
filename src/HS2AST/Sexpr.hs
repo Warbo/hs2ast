@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, RankNTypes, DeriveDataTypeable #-}
 
-module ML4HS.Sexpr where
+module HS2AST.Sexpr where
 
 import Data.List
 import Data.ByteString (ByteString)
@@ -15,7 +15,7 @@ import Data.Generics
 import Name
 import Data.Data
 import Data.Functor.Identity
-import ML4HS.Types
+import HS2AST.Types
 import Data.Maybe
 import Control.Monad
 

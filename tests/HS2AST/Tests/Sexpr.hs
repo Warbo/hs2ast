@@ -1,13 +1,13 @@
-module ML4HS.Tests.Sexpr (impureTests, pureTests) where
+module HS2AST.Tests.Sexpr (impureTests, pureTests) where
 
 import Debug.Trace
 import Data.Typeable
 import Data.Data
 import Control.Applicative
-import ML4HS.Parser
-import ML4HS.Sexpr
-import ML4HS.Types
-import ML4HS.Tests.Generators
+import HS2AST.Parser
+import HS2AST.Sexpr
+import HS2AST.Types
+import HS2AST.Tests.Generators
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.QuickCheck.Monadic
