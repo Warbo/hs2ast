@@ -73,9 +73,12 @@ namedBinding e@(FunBind _ _ _ _ _ _) = Just (unLoc (fun_id e), e)
 namedBinding e@(VarBind _ _ _)       = Just (var_id e, e)
 namedBinding _                       = Nothing
 
+-- | Render a binding's name to a String
+strBinding :: (GhcMonad m, Outputable a) => (a, t) -> m (String, t)
 strBinding (n, e) = do n' <- showSdoc n
                        return (n', e)
 
+-- | Gather all bindings from Haskell files and extract their names
 namedBindingsFrom :: [HsFile] -> Ghc [(Name, HsBindLR Name Name)]
 namedBindingsFrom fs = do bindings <- bindingsFrom' fs
                           return (mapMaybe namedBinding bindings)
