@@ -2,35 +2,55 @@
 
 module HS2AST.Sexpr where
 
-import Data.List
-import Data.ByteString (ByteString)
-import Data.ByteString.Char8 (unpack)
-import CoreSyn
-import Unique
-import Data.Generics.Schemes
-import Data.Generics.Uniplate.Operations
-import SrcLoc
-import HsBinds
-import Data.Generics
-import Name
-import Data.Data
-import Data.Functor.Identity
-import HS2AST.Types
-import Data.Maybe
-import Control.Monad
+import           Data.List
+import           Data.ByteString (ByteString)
+import           Data.ByteString.Char8 (unpack)
+import qualified Data.Map as DM
+import           CoreSyn
+import           Unique
+import           Data.Generics.Schemes
+import           Data.Generics.Uniplate.Operations
+import           SrcLoc
+import           HsBinds
+import           Data.Generics
+import           Name
+import           Module
+import           Data.Data
+import           Data.Functor.Identity
+import           HS2AST.Types
+import           Data.Maybe
+import           Control.Monad
 
 -- Useful for discarding a load of information from GHC's complex AST types
 
-dumpBinding :: HsBindLR Name Name -> Maybe (Sexpr String)
-dumpBinding = simpleAst . dummyTypes
+type AST = Sexpr String
 
-dumpBindings :: [[[HsBindLR Name Name]]] -> [Sexpr String]
-dumpBindings              []  = []
-dumpBindings (         []:ys) = dumpBindings ys
-dumpBindings (    ([]:xs):ys) = dumpBindings (xs:ys)
-dumpBindings (((z:zs):xs):ys) = case dumpBinding z of
-                                     Nothing -> dumpBindings ((zs:xs):ys)
-                                     Just s  -> s : dumpBindings ((zs:xs):ys)
+convertBinding :: HsBindLR Name Name -> Maybe AST
+convertBinding = simpleAst . dummyTypes
+
+collateBindings' ::    [(PackageId, ModuleName, Name, HsBindLR Name Name)]
+                    -> DM.Map PackageId (DM.Map ModuleName (DM.Map Name AST))
+collateBindings' []                   = DM.empty
+collateBindings' ((pid, mn, n, b):xs) = case convertBinding b of
+  Nothing  -> collateBindings' xs
+  Just ast -> DM.insertWith (DM.unionWith DM.union)
+                            pid
+                            (DM.singleton mn (DM.singleton n ast))
+                            (collateBindings' xs)
+
+collateBindings = pkgsToSexprs . collateBindings'
+
+namesToSexprs :: DM.Map Name AST -> Sexpr String
+namesToSexprs = DM.foldrWithKey helper (Node [])
+  where helper name ast (Node xs) = Node (Node [Leaf (show name), ast] : xs)
+
+modsToSexprs :: DM.Map ModuleName (DM.Map Name AST) -> Sexpr String
+modsToSexprs = DM.foldrWithKey helper (Node [])
+  where helper mod names (Node xs) = Node (Node [Leaf (show mod), namesToSexprs names] : xs)
+
+pkgsToSexprs :: DM.Map PackageId (DM.Map ModuleName (DM.Map Name AST)) -> Sexpr String
+pkgsToSexprs = DM.foldrWithKey helper (Node [])
+  where helper pkg mods (Node xs) = Node (Node [Leaf (show pkg), modsToSexprs mods] : xs)
 
 namedToSexpr :: (Data a, Uniquable a) => Env -> (a, Expr a) -> (Env, (String, Sexpr String))
 namedToSexpr env (n, e) = let (env', n') = showName env n
@@ -109,10 +129,13 @@ simpleAst :: Data a => a -> Maybe (Sexpr String)
 simpleAst = toSexp excludedTypes unwrapTypes
 
 strConstr :: Data a => a -> String
-strConstr = extQ (show . toConstr) showBS
+strConstr = extQ (extQ (show . toConstr) showBS) showNameString
 
 showBS :: ByteString -> String
 showBS bs = "BS(" ++ unpack bs ++ ")"
+
+showNameString :: Name -> String
+showNameString n = "Name(" ++ show n ++ ")"
 
 toSx :: Data a => [TypeRep] -> [TypeRep] -> a -> Maybe (Sexpr String)
 toSx ex un x = let t = typeRep [x]

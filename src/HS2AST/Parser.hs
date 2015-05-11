@@ -32,10 +32,12 @@ renameAST ms pm = do env <- getSession
                           Just (x, _, _, _)  -> return (extractDefs x)
 
 -- | Get the top-level bindings from a loaded Haskell module
-renameMod :: ModSummary -> Ghc [HsBindLR Name Name]
+renameMod :: ModSummary -> Ghc (PackageId, ModuleName, [HsBindLR Name Name])
 renameMod ms = do env <- getSession
                   ast <- liftIO (hscParse env ms)
-                  renameAST ms ast
+                  rAst <- renameAST ms ast
+                  let mod = ms_mod ms
+                  return (modulePackageId mod, moduleName mod, rAst)
 
 -- | Extract top-level definitions from a module AST
 extractDefs :: HsGroup id -> [HsBindLR id id]
@@ -57,21 +59,27 @@ graphMods fs = do targets <- mapM ((`guessTarget` Nothing) . unHs) fs
                   return (map flattenSCC sorted)
 
 -- | Get all top-level bindings from a list of Haskell files
-bindingsFrom :: [HsFile] -> Ghc [[[HsBindLR Name Name]]]
-bindingsFrom fs = graphMods fs >>= mapM (mapM renameMod)
+bindingsFrom :: [HsFile] -> Ghc [(PackageId, ModuleName, [HsBindLR Name Name])]
+bindingsFrom fs = do sumss <- graphMods fs
+                     let sums = concat sumss
+                     mapM renameMod sums
 
-bindingsFrom' :: [HsFile] -> Ghc [HsBindLR Name Name]
+annotate :: (a, b, [c]) -> [(a, b, c)]
+annotate (pid, mn, [])     = []
+annotate (pid, mn, (x:xs)) = (pid, mn, x) : annotate (pid, mn, xs)
+
+bindingsFrom' :: [HsFile] -> Ghc [(PackageId, ModuleName, HsBindLR Name Name)]
 bindingsFrom' fs = do bs <- bindingsFrom fs
-                      return (concat (concat bs))
+                      return (concatMap annotate bs)
 
 showSdoc x = do flags <- getSessionDynFlags
                 return (show (runSDoc (ppr x) (initSDocContext flags defaultDumpStyle)))
 
 -- | Extract the 'Name' from a binding
-namedBinding :: HsBindLR Name Name -> Maybe (Name, HsBindLR Name Name)
-namedBinding e@(FunBind _ _ _ _ _ _) = Just (unLoc (fun_id e), e)
-namedBinding e@(VarBind _ _ _)       = Just (var_id e, e)
-namedBinding _                       = Nothing
+namedBinding :: (a, b, HsBindLR Name Name) -> Maybe (a, b, Name, HsBindLR Name Name)
+namedBinding (pid, mn, e@ (FunBind _ _ _ _ _ _)) = Just (pid, mn, unLoc (fun_id e), e)
+namedBinding (pid, mn, e@ (VarBind _ _ _))       = Just (pid, mn, var_id e, e)
+namedBinding _                                   = Nothing
 
 -- | Render a binding's name to a String
 strBinding :: (GhcMonad m, Outputable a) => (a, t) -> m (String, t)
@@ -79,7 +87,7 @@ strBinding (n, e) = do n' <- showSdoc n
                        return (n', e)
 
 -- | Gather all bindings from Haskell files and extract their names
-namedBindingsFrom :: [HsFile] -> Ghc [(Name, HsBindLR Name Name)]
+namedBindingsFrom :: [HsFile] -> Ghc [(PackageId, ModuleName, Name, HsBindLR Name Name)]
 namedBindingsFrom fs = do bindings <- bindingsFrom' fs
                           return (mapMaybe namedBinding bindings)
 
@@ -93,7 +101,7 @@ withTempHaskell (H s) f = do
   return result
 
 -- | Parse a Haskell string (using a temporary file!)
-parseHaskell :: Haskell -> Ghc [[[HsBindLR Name Name]]]
+parseHaskell :: Haskell -> Ghc [(PackageId, ModuleName, [HsBindLR Name Name])]
 parseHaskell h = fmap dummyTypes $ withTempHaskell h (\p -> bindingsFrom [p])
 
 coreVals :: HsFile -> Ghc CoreProgram

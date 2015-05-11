@@ -3,7 +3,7 @@
 module HS2AST.Types (
    Haskell(H)
  , HsFile()
- , Sexpr()
+ , Sexpr(Leaf, Node)
  , mkLeaf
  , mkNode
  , unExpr
@@ -27,7 +27,9 @@ import GHC.Paths
 import GhcMonad
 import HscMain
 import HscTypes
+import Module
 import MonadUtils
+import Name
 import Outputable
 import TypeRep
 
@@ -80,7 +82,7 @@ instance Functor Sexpr where
   fmap f (Node xs) = Node (map (fmap f) xs)
 
 instance Show a => Show (Sexpr a) where
-  show (Leaf x)  = "(" ++ show x ++ ")"
+  show (Leaf x)  = show x
   show (Node xs) = "(" ++ unwords (map show xs) ++ ")"
 
 -- Wrap up the dynamically-dangerous GHC API
@@ -107,3 +109,13 @@ inDefaultEnv x = do f <- getSessionDynFlags
 -- | Do not call 'runGHC' directly, use 'runInSession' instead
 runGhc :: Maybe FilePath -> Ghc a -> IO a
 runGhc = error "Do not call runGHC directly, use runInSession instead"
+
+-- Helpful instances
+instance Show Name where
+  show = occNameString . nameOccName
+
+instance Show ModuleName where
+  show = moduleNameString
+
+instance Show PackageId where
+  show = packageIdString
