@@ -16,8 +16,8 @@ cabal.mkDerivation (self: {
     temporary transformers uniplate
   ];
   meta = {
-    homepage = "http://chriswarbo.net/essays/repos/hs2ast";
-    description = "Dumps syntax trees of Haskell source code";
+    homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
+    description = "Dump syntax trees of Haskell code";
     license = "GPL";
     platforms = self.ghc.meta.platforms;
   };
