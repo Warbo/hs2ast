@@ -8,5 +8,5 @@ main = do args <- getArgs
           if null args
              then error "Please provide Haskell filenames as arguments"
              else return ()
-          bindings <- runInSession (getAsts (toHs args))
-          putStrLn (renderAsts bindings)
+          bindings <- runInSession (identifiedAsts (toHs args))
+          writeAsts bindings

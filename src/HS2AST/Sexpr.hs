@@ -52,6 +52,21 @@ pkgsToSexprs :: DM.Map PackageId (DM.Map ModuleName (DM.Map Name AST)) -> Sexpr 
 pkgsToSexprs = DM.foldrWithKey helper (Node [])
   where helper pkg mods (Node xs) = Node (Node [Leaf (show pkg), modsToSexprs mods] : xs)
 
+identifyAsts :: [(PackageId, ModuleName, Name, HsBindLR Name Name)] -> [(Sexpr String, AST)]
+identifyAsts = mapMaybe convert
+  where convert (pid, mod, name, expr) = case convertBinding expr of
+                                             Just ast -> Just (Node [Leaf (show pid),
+                                                                     Leaf (show mod),
+                                                                     Leaf (show name)],
+                                                               ast)
+                                             Nothing  -> Nothing
+
+collateIdentified :: [(Sexpr String, AST)] -> Sexpr String
+collateIdentified [] = Node []
+collateIdentified ((id, ast):xs) = let head      = Node [id, ast]
+                                       Node tail = collateIdentified xs
+                                   in  Node (head : tail)
+
 namedToSexpr :: (Data a, Uniquable a) => Env -> (a, Expr a) -> (Env, (String, Sexpr String))
 namedToSexpr env (n, e) = let (env', n') = showName env n
                           in  (env, (n', exprToSexpr (fiddleExpr e)))
