@@ -23,15 +23,35 @@ identifiedAsts fs = do bindings <- namedBindingsFrom fs
 renderAsts :: Sexpr String -> String
 renderAsts = show
 
-mkDir = createDirectoryIfMissing True . intercalate "/"
+type Dir  = FilePath
+type File = FilePath
+
+mkDir = createDirectoryIfMissing True
 
 leafList (Node [])            = []
 leafList (Node (Leaf x : xs)) = x : leafList (Node xs)
 
-writeToFile :: Sexpr String -> IO ()
-writeToFile (Node [ids, ast]) = let path = leafList ids
-                                in  do mkDir (init path)
-                                       writeFile (intercalate "/" path)
-                                                 (show ast)
+-- | Given an Sexpr describing an AST, returns a list of directories we need to
+--   create, along with file/content pairs we should write
+filesToWrite :: Sexpr String -> (Dir, (File, String))
+filesToWrite (Node [ids, ast]) = let path = leafList ids
+                                 in  ( intercalate "/" (init path),
+                                      (intercalate "/"       path, show ast))
 
-writeAsts (Node asts) = mapM writeToFile asts
+collateFiles :: [(Dir, (File, String))] -> ([Dir], [(File, String)])
+collateFiles = cF ([], [])
+
+{-
+collateFiles []            = ([], [])
+collateFiles ((d, f):xs) = let (ds, fs) = collateFiles xs
+                           in  (d:ds, f:fs)
+-}
+
+cF acc      []          = acc
+cF (ds, fs) ((d, f):xs) = cF (d:ds, f:fs) xs
+
+writeAsts' :: [Dir] -> [(File, String)] -> IO ()
+writeAsts' ds fs = mapM mkDir ds >> mapM (uncurry writeFile) fs >> return ()
+
+writeAsts :: Sexpr String -> IO ()
+writeAsts (Node xs) = uncurry writeAsts' . collateFiles . map filesToWrite $ xs
