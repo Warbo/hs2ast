@@ -28,8 +28,8 @@ type AST = Sexpr String
 convertBinding :: HsBindLR Name Name -> Maybe AST
 convertBinding = simpleAst . dummyTypes
 
-collateBindings' ::    [(PackageId, ModuleName, Name, HsBindLR Name Name)]
-                    -> DM.Map PackageId (DM.Map ModuleName (DM.Map Name AST))
+collateBindings' ::    [(PackageKey, ModuleName, Name, HsBindLR Name Name)]
+                    -> DM.Map PackageKey (DM.Map ModuleName (DM.Map Name AST))
 collateBindings' []                   = DM.empty
 collateBindings' ((pid, mn, n, b):xs) = case convertBinding b of
   Nothing  -> collateBindings' xs
@@ -48,11 +48,11 @@ modsToSexprs :: DM.Map ModuleName (DM.Map Name AST) -> Sexpr String
 modsToSexprs = DM.foldrWithKey helper (Node [])
   where helper mod names (Node xs) = Node (Node [Leaf (show mod), namesToSexprs names] : xs)
 
-pkgsToSexprs :: DM.Map PackageId (DM.Map ModuleName (DM.Map Name AST)) -> Sexpr String
+pkgsToSexprs :: DM.Map PackageKey (DM.Map ModuleName (DM.Map Name AST)) -> Sexpr String
 pkgsToSexprs = DM.foldrWithKey helper (Node [])
   where helper pkg mods (Node xs) = Node (Node [Leaf (show pkg), modsToSexprs mods] : xs)
 
-identifyAsts :: [(PackageId, ModuleName, Name, HsBindLR Name Name)] -> [(Sexpr String, AST)]
+identifyAsts :: [(PackageKey, ModuleName, Name, HsBindLR Name Name)] -> [(Sexpr String, AST)]
 identifyAsts = mapMaybe convert
   where convert (pid, mod, name, expr) = case convertBinding expr of
                                              Just ast -> Just (Node [Leaf (show pid),

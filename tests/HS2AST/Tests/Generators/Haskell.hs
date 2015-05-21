@@ -71,12 +71,16 @@ instance ArbSize (ExpG ()) where
 instance ArbSize (ExpG Bool) where
   arb n | n < 0 = error ("arb " ++ show n ++ " :: Gen Bool")
   arb 0 = oneof [return true', return false']
-  arb n = oneof [
-              arb 0
-            , applyE not' <$> arb (n - 1)
-            , applyE or'  <$> arb (n - 1)  -- Takes a *list* of arguments
-            , applyE and' <$> arb (n - 1)  -- Takes a *list* of arguments
-            ]
+  arb n = let ors  :: Gen (ExpG [Bool])
+              ors  = arb (n - 1)
+              ands :: Gen (ExpG [Bool])
+              ands = arb (n - 1)
+          in oneof [
+                 arb 0
+               , applyE not' <$> arb (n - 1)
+               , applyE or'  <$> ors  -- Takes a *list* of arguments
+               , applyE and' <$> ands -- Takes a *list* of arguments
+               ]
 
 instance ArbSize (ExpG Int) where
   arb n = do x <- choose (0, n)

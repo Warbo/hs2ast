@@ -100,7 +100,9 @@ inDefaultEnv x = do f <- getSessionDynFlags
                         log_action   = dieErr
                       , ghcLink      = LinkInMemory
                       , hscTarget    = HscInterpreted
-                      , packageFlags = [ExposePackage "ghc"]
+                      -- Include all ghc package's modules, don't rename any
+                      , packageFlags = [ExposePackage (PackageArg "ghc")
+                                                      (ModRenaming True [])]
                       })
                     x
 
@@ -117,5 +119,5 @@ instance Show Name where
 instance Show ModuleName where
   show = moduleNameString
 
-instance Show PackageId where
-  show = packageIdString
+instance Show PackageKey where
+  show = packageKeyString
