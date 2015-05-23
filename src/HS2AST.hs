@@ -50,8 +50,12 @@ collateFiles ((d, f):xs) = let (ds, fs) = collateFiles xs
 cF acc      []          = acc
 cF (ds, fs) ((d, f):xs) = cF (d:ds, f:fs) xs
 
-writeAsts' :: [Dir] -> [(File, String)] -> IO ()
-writeAsts' ds fs = mapM mkDir ds >> mapM (uncurry writeFile) fs >> return ()
+writeAsts' :: Dir -> [Dir] -> [(File, String)] -> IO ()
+writeAsts' dir ds fs = let inDir f = dir ++ "/" ++ f
+                           write (f, s) = writeFile (inDir f) s
+                       in  mapM (mkDir . inDir) ds >>
+                           mapM write fs >>
+                           return ()
 
-writeAsts :: Sexpr String -> IO ()
-writeAsts (Node xs) = uncurry writeAsts' . collateFiles . map filesToWrite $ xs
+writeAsts :: Dir -> Sexpr String -> IO ()
+writeAsts dir (Node xs) = uncurry (writeAsts' dir) . collateFiles . map filesToWrite $ xs
