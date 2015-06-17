@@ -1,5 +1,5 @@
-{ mkDerivation, base, bytestring, containers, directory, ghc
-, ghc-paths, haskell-generate, QuickCheck, stdenv, syb, tasty
+{ mkDerivation, ArbitraryHaskell, base, bytestring, containers
+, directory, ghc, ghc-paths, QuickCheck, stdenv, syb, tasty
 , tasty-quickcheck, temporary, transformers, uniplate
 }:
 mkDerivation {
@@ -9,11 +9,11 @@ mkDerivation {
   isLibrary = false;
   isExecutable = true;
   buildDepends = [
-    base bytestring containers directory ghc ghc-paths QuickCheck syb
-    transformers uniplate
+    ArbitraryHaskell base bytestring containers directory ghc ghc-paths
+    QuickCheck syb transformers uniplate
   ];
   testDepends = [
-    base bytestring containers directory ghc ghc-paths haskell-generate
+    ArbitraryHaskell base bytestring containers directory ghc ghc-paths
     QuickCheck syb tasty tasty-quickcheck temporary transformers
     uniplate
   ];

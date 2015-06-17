@@ -32,11 +32,7 @@ import MonadUtils
 import Name
 import Outputable
 import TypeRep
-
--- Haskell code
-
--- | Haskell code
-newtype Haskell = H String deriving Show
+import Test.Arbitrary.Haskell
 
 -- Haskell files, with smart constructors
 

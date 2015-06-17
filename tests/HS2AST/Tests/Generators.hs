@@ -7,7 +7,6 @@ module HS2AST.Tests.Generators (
  ) where
 
 import HS2AST.Types
-import HS2AST.Tests.Generators.Haskell
 import Control.Applicative
 import Data.Maybe
 import Data.Data
