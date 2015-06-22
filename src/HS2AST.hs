@@ -1,20 +1,22 @@
 module HS2AST where
 
-import           Data.List
-import           GhcMonad
-import           Module
-import           Name
-import           HS2AST.Parser
-import           HS2AST.Sexpr
-import           HS2AST.Types
+import Data.List
+import HS2AST.Parser
+import HS2AST.Sexpr
+import HS2AST.Types
+import GHC
+import GhcMonad
+import Module
+import Name
 
-convertToNamed f (a, b, c, d) = case convertBinding d of
-                                     Nothing -> []
-                                     Just y  -> [((f, a, b, c), y)]
+convertToNamed :: Named a (HsBindLR Name Name) -> [Named a AST]
+convertToNamed (a, b) = case convertBinding b of
+                             Nothing -> []
+                             Just b' -> [(a, b')]
 
 namedAsts :: HsFile -> Ghc [Named OutName AST]
 namedAsts f = do bindings <- namedBindingsFrom f
-                 return $ concatMap (convertToNamed (unHs f)) bindings
+                 return $ concatMap convertToNamed bindings
 
 type Dir  = FilePath
 type File = FilePath

@@ -64,12 +64,12 @@ bindingsFrom' f = do bs <- bindingsFrom f
                      return (concatMap annotate bs)
 
 -- | Extract the 'Name' from a binding
-namedBinding :: (a, b, HsBindLR Name Name) -> Maybe (a, b, Name, HsBindLR Name Name)
-namedBinding (pid, mn, e@ (FunBind _ _ _ _ _ _)) = Just (pid, mn, unLoc (fun_id e), e)
-namedBinding (pid, mn, e@ (VarBind _ _ _))       = Just (pid, mn, var_id e, e)
-namedBinding _                                   = Nothing
+namedBinding :: FilePath -> (PackageKey, ModuleName, HsBindLR Name Name) -> Maybe (Named OutName (HsBindLR Name Name))
+namedBinding f (pid, mn, e@(FunBind _ _ _ _ _ _)) = Just ((f, pid, mn, unLoc (fun_id e)), e)
+namedBinding f (pid, mn, e@(VarBind _ _ _))       = Just ((f, pid, mn, var_id e),         e)
+namedBinding f _                                  = Nothing
 
 -- | Gather all bindings from Haskell files and extract their names
-namedBindingsFrom :: HsFile -> Ghc [(PackageKey, ModuleName, Name, HsBindLR Name Name)]
+namedBindingsFrom :: HsFile -> Ghc [Named OutName (HsBindLR Name Name)]
 namedBindingsFrom f = do bindings <- bindingsFrom' f
-                         return (mapMaybe namedBinding bindings)
+                         return (mapMaybe (namedBinding (unHs f)) bindings)
