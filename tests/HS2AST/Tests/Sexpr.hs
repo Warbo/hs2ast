@@ -13,7 +13,6 @@ import Test.Tasty.QuickCheck
 import Test.QuickCheck.Monadic
 
 impureTests = testGroup "Monadic s-expression tests" [
-                testProperty "Haskell converts nicely" haskellConverts
               ]
 pureTests   = testGroup "Pure s-expression tests" [
                   testProperty "Ints convert nicely" intToSexpr
@@ -29,15 +28,6 @@ pureTests   = testGroup "Pure s-expression tests" [
 
 intToSexpr :: Int -> Bool
 intToSexpr i = toSx [] [] i == Just (mkLeaf (show i))
-
-haskellConverts h = let walk x = case unExpr x of
-                                      Left  x  -> True
-                                      Right xs -> all walk xs
-                    in  monadicIO $ do
-                          hs <- run $ runInSession (parseHaskell h)
-                          case simpleAst hs of
-                               Nothing  -> assert False
-                               Just ast -> assert (walk ast)
 
 -- Simplified Sexpr builders; don't perform generic type-matching stuff
 sLeaf :: Data a => a -> Sexpr String
@@ -82,3 +72,12 @@ sumKeepL x = let Just result = toSexp [] [] x
 sumKeepR :: Either String Bool -> Bool
 sumKeepR x = let Just result = toSexp [] [] x
              in  anyTrue result == (x == Right True)
+
+-- | Fold an Sexpr
+foldsx :: (a -> b) -> ([b] -> b) -> Sexpr a -> b
+foldsx leaf node sx = case unExpr sx of
+  Left  x  -> leaf x
+  Right xs -> node (map (foldsx leaf node) xs)
+
+anysx :: (a -> Bool) -> Sexpr a -> Bool
+anysx f = foldsx f (any id)

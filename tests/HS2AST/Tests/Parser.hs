@@ -21,7 +21,6 @@ impureTests = testGroup "Monadic parser tests" [
                   testProperty "No empty ModuleSummary"     (ioNE noEmptyModuleSummary)
                 , testProperty "Parse errors cause abort"   parseErrorsCauseAbort
                 , testProperty "Bindings can be extracted"  (ioNE canGetBindings)
-                , testProperty "Generated code is parsable" genCodeWillParse
                 ]
 
 -- | IO test with non-empty list argument
@@ -55,10 +54,3 @@ showErr e = liftIO (putStrLn "\nERROR:" >>
 -- | Represent exceptions using a sum type
 sumExcept :: IO a -> IO (Either SomeException a)
 sumExcept f = protect Left (fmap Right f)
-
-withHaskellFile f h = do result <- run $ withTempHaskell h (sumExcept . f)
-                         case result of
-                              Right b -> assert  b
-                              Left  e -> showErr e
-
-genCodeWillParse h = monadicIO $ withHaskellFile parsePath h
