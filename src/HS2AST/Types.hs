@@ -1,19 +1,16 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module HS2AST.Types {-(
-   Haskell(H)
- , HsFile()
+module HS2AST.Types (
+   HsFile()
  , Sexpr(Leaf, Node)
  , mkLeaf
  , mkNode
- , unExpr
  , mkHs
  , unHs
  , toHs
  , dummyTypes
  , runInSession
- , runGhc
- )-} where
+ ) where
 
 import Data.Char
 import Data.Data

@@ -10,6 +10,10 @@ import HscMain
 import HscTypes
 import HS2AST.Types
 
+type Named n a = (n, a)
+
+type OutName = (FilePath, PackageKey, ModuleName, Name)
+
 -- | Get the top-level bindings from a parsed Haskell module
 renameAST :: ModSummary -> HsParsedModule -> Ghc [HsBindLR Name Name]
 renameAST ms pm = do env <- getSession
@@ -37,27 +41,27 @@ extractDefs g = let vals  = hs_valds g
                 in  unloc
 
 -- | Get a topologically sorted graph of Haskell modules from the given files.
-graphMods :: [HsFile] -> Ghc [[ModSummary]]
-graphMods fs = do targets <- mapM ((`guessTarget` Nothing) . unHs) fs
-                  mapM_ addTarget targets
-                  load LoadAllTargets
-                  graph <- depanal [] True
-                  let sorted = topSortModuleGraph True graph Nothing
-                  return (map flattenSCC sorted)
+graphMods :: HsFile -> Ghc [[ModSummary]]
+graphMods f = do target <- guessTarget (unHs f) Nothing
+                 addTarget target
+                 load LoadAllTargets
+                 graph <- depanal [] True
+                 let sorted = topSortModuleGraph True graph Nothing
+                 return (map flattenSCC sorted)
 
--- | Get all top-level bindings from a list of Haskell files
-bindingsFrom :: [HsFile] -> Ghc [(PackageKey, ModuleName, [HsBindLR Name Name])]
-bindingsFrom fs = do sumss <- graphMods fs
-                     let sums = concat sumss
-                     mapM renameMod sums
+-- | Get all top-level bindings from a Haskell file
+bindingsFrom :: HsFile -> Ghc [(PackageKey, ModuleName, [HsBindLR Name Name])]
+bindingsFrom f = do sumss <- graphMods f
+                    let sums = concat sumss
+                    mapM renameMod sums
 
 annotate :: (a, b, [c]) -> [(a, b, c)]
 annotate (pid, mn, [])     = []
 annotate (pid, mn, (x:xs)) = (pid, mn, x) : annotate (pid, mn, xs)
 
-bindingsFrom' :: [HsFile] -> Ghc [(PackageKey, ModuleName, HsBindLR Name Name)]
-bindingsFrom' fs = do bs <- bindingsFrom fs
-                      return (concatMap annotate bs)
+bindingsFrom' :: HsFile -> Ghc [(PackageKey, ModuleName, HsBindLR Name Name)]
+bindingsFrom' f = do bs <- bindingsFrom f
+                     return (concatMap annotate bs)
 
 -- | Extract the 'Name' from a binding
 namedBinding :: (a, b, HsBindLR Name Name) -> Maybe (a, b, Name, HsBindLR Name Name)
@@ -66,6 +70,6 @@ namedBinding (pid, mn, e@ (VarBind _ _ _))       = Just (pid, mn, var_id e, e)
 namedBinding _                                   = Nothing
 
 -- | Gather all bindings from Haskell files and extract their names
-namedBindingsFrom :: [HsFile] -> Ghc [(PackageKey, ModuleName, Name, HsBindLR Name Name)]
-namedBindingsFrom fs = do bindings <- bindingsFrom' fs
-                          return (mapMaybe namedBinding bindings)
+namedBindingsFrom :: HsFile -> Ghc [(PackageKey, ModuleName, Name, HsBindLR Name Name)]
+namedBindingsFrom f = do bindings <- bindingsFrom' f
+                         return (mapMaybe namedBinding bindings)

@@ -8,27 +8,22 @@ import           HS2AST.Parser
 import           HS2AST.Sexpr
 import           HS2AST.Types
 
-type Named n a = (n, a)
+convertToNamed f (a, b, c, d) = case convertBinding d of
+                                     Nothing -> []
+                                     Just y  -> [((f, a, b, c), y)]
 
-type OutName = (FilePath, PackageKey, ModuleName, Name)
-
-namedAsts f = let f' = unHs f
-                  conv (a, b, c, d) = case convertBinding d of
-                                           Nothing -> []
-                                           Just y  -> [(f', a, b, c, y)]
-              in  do bindings <- namedBindingsFrom [f]
-                     return $ concatMap conv bindings
+namedAsts :: HsFile -> Ghc [Named OutName AST]
+namedAsts f = do bindings <- namedBindingsFrom f
+                 return $ concatMap (convertToNamed (unHs f)) bindings
 
 type Dir  = FilePath
 type File = FilePath
 
 filesToAsts' :: [HsFile] -> Ghc [Named OutName AST]
 filesToAsts' []     = return []
-filesToAsts' (f:fs) = let f' = unHs f
-                          conv (a, b, c, d, e) = ((a, b, c, d), e)
-                      in  do ast  <- namedAsts    f
-                             asts <- filesToAsts' fs
-                             return (map conv ast ++ asts)
+filesToAsts' (f:fs) = do ast  <- namedAsts    f
+                         asts <- filesToAsts' fs
+                         return (ast ++ asts)
 
 sanitise :: [FilePath] -> [FilePath]
 sanitise = filter (not . dodgy)
