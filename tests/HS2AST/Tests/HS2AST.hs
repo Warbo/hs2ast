@@ -21,14 +21,9 @@ pureTests   = testGroup "Pure integration tests" [
                 ]
 
 impureTests = testGroup "Monadic integration tests" [
-                  testProperty "Good files get ASTs" goodAsts
-                , testProperty "Outputs are real files" allOutputsWereGiven
+                  testProperty "Outputs are real files" allOutputsWereGiven
                 , testProperty "Real files are outputted" allGivenAreOutput
                 ]
-
-goodAsts (NonEmpty fs) = monadicIO $ do
-                           asts <- run $ runInSession $ getAsts (unique fs)
-                           assert True
 
 canCollateFiles ds' fs' = let size = min (length ds') (length fs')
                               ds   = take size ds'

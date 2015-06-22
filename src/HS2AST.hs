@@ -12,10 +12,6 @@ import           HS2AST.Sexpr
 import           HS2AST.Types
 import           System.Directory
 
-getAsts :: [HsFile] -> Ghc (Sexpr String)
-getAsts fs = do bindings <- namedBindingsFrom fs
-                return (collateBindings bindings)
-
 type Named n a = (n, a)
 
 type OutName = (FilePath, PackageKey, ModuleName, Name)
