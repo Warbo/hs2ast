@@ -16,6 +16,7 @@ module HS2AST.Types (
  ) where
 
 import Control.Applicative
+import Data.Char
 import Data.Data
 import Data.Generics.Uniplate.Data
 import Data.Maybe
@@ -41,7 +42,7 @@ newtype HsFile = Hs FilePath  deriving (Show, Eq, Ord)
 
 -- | Turn Strings into HsFiles if they look like Haskell files
 mkHs :: FilePath -> Maybe HsFile
-mkHs f = let ext s = take (length s) (reverse f) == reverse s
+mkHs f = let ext s = map toLower (take (length s) (reverse f)) == reverse s
          in  if ext ".hs" || ext ".lhs"
                 then Just (Hs f)
                 else Nothing

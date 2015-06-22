@@ -53,3 +53,4 @@ test-suite test
                      , syb
                      , bytestring
                      , ArbitraryHaskell
+                     , process
