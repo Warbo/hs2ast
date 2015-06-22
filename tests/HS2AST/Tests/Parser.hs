@@ -24,19 +24,19 @@ impureTests = testGroup "Monadic parser tests" [
                 ]
 
 -- | IO test with non-empty list argument
-ioNE f (NonEmpty fs) = monadicIO (f (unique fs))
+ioNE func file = monadicIO (func file)
 
-noEmptyModuleSummary fs = do Right g <- go (graphMods fs)
-                             assert (not (null g))
+noEmptyModuleSummary f = do Right g <- go (graphMods f)
+                            assert (not (null g))
 
 parseErrorsCauseAbort = monadicIO $ do
-  fs     <- pick (listOf1 arbBad)
-  result <- go (graphMods fs)
+  f      <- pick arbBad
+  result <- go (graphMods f)
   assert $ case result of
                 Left  _ -> True
                 Right _ -> False
 
-parsePath p = runInSession (fmap (not . null) (bindingsFrom [p]))
+parsePath p = runInSession (fmap (not . null) (bindingsFrom p))
 
 canGetBindings fs = do result <- go (bindingsFrom fs)
                        case result of

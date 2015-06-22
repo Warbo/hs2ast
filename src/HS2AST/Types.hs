@@ -24,6 +24,7 @@ import GhcMonad
 import Module
 import Name
 import Outputable
+import Packages
 import TypeRep
 
 -- Haskell files, with smart constructors
@@ -76,15 +77,21 @@ runInSession = GHC.runGhc (Just libdir) . inDefaultEnv
 dieErr flg lvl loc fmt msg = error (show (runSDoc (mkLocMessage lvl loc msg)
                                                   (initSDocContext flg fmt)))
 
-inDefaultEnv x = do f <- getSessionDynFlags
-                    GHC.setSessionDynFlags (f {
+pkgDbs = map PkgConfFile ["/home/chris/Programming/Haskell/HS2AST/dist/package.conf.inplace"]
+
+inDefaultEnv x = do oldFlags <- getSessionDynFlags
+                    let newFlags = oldFlags {
                         log_action   = dieErr
                       , ghcLink      = LinkInMemory
                       , hscTarget    = HscInterpreted
                       -- Include all ghc package's modules, don't rename any
                       , packageFlags = [ExposePackage (PackageArg "ghc")
                                                       (ModRenaming True [])]
-                      })
+                      -- Include this package's dependencies
+                      , extraPkgConfs = \x -> pkgDbs ++ extraPkgConfs oldFlags x
+                      }
+                    GHC.setSessionDynFlags newFlags
+                    liftIO $ initPackages newFlags
                     x
 
 -- Helpful instances

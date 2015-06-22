@@ -23,12 +23,12 @@ renameAST ms pm = do env <- getSession
                           Just (x, _, _, _)  -> return (extractDefs x)
 
 -- | Get the top-level bindings from a loaded Haskell module
-renameMod :: ModSummary -> Ghc (PackageKey, ModuleName, [HsBindLR Name Name])
-renameMod ms = do env <- getSession
-                  ast <- liftIO (hscParse env ms)
-                  rAst <- renameAST ms ast
-                  let mod = ms_mod ms
-                  return (modulePackageKey mod, moduleName mod, rAst)
+renameMod :: FilePath -> ModSummary -> Ghc (FilePath, PackageKey, ModuleName, [HsBindLR Name Name])
+renameMod f ms = do env <- getSession
+                    ast <- liftIO (hscParse env ms)
+                    rAst <- renameAST ms ast
+                    let mod = ms_mod ms
+                    return (f, modulePackageKey mod, moduleName mod, rAst)
 
 -- | Extract top-level definitions from a module AST
 extractDefs :: HsGroup id -> [HsBindLR id id]
@@ -50,26 +50,26 @@ graphMods f = do target <- guessTarget (unHs f) Nothing
                  return (map flattenSCC sorted)
 
 -- | Get all top-level bindings from a Haskell file
-bindingsFrom :: HsFile -> Ghc [(PackageKey, ModuleName, [HsBindLR Name Name])]
+bindingsFrom :: HsFile -> Ghc [(FilePath, PackageKey, ModuleName, [HsBindLR Name Name])]
 bindingsFrom f = do sumss <- graphMods f
                     let sums = concat sumss
-                    mapM renameMod sums
+                    mapM (renameMod (unHs f)) sums
 
-annotate :: (a, b, [c]) -> [(a, b, c)]
-annotate (pid, mn, [])     = []
-annotate (pid, mn, (x:xs)) = (pid, mn, x) : annotate (pid, mn, xs)
+annotate :: (a, b, c, [d]) -> [Named (a, b, c) d]
+annotate (a, b, c, [])     = []
+annotate (a, b, c, (x:xs)) = ((a, b, c), x) : annotate (a, b, c, xs)
 
-bindingsFrom' :: HsFile -> Ghc [(PackageKey, ModuleName, HsBindLR Name Name)]
+bindingsFrom' :: HsFile -> Ghc [((FilePath, PackageKey, ModuleName), HsBindLR Name Name)]
 bindingsFrom' f = do bs <- bindingsFrom f
                      return (concatMap annotate bs)
 
 -- | Extract the 'Name' from a binding
-namedBinding :: FilePath -> (PackageKey, ModuleName, HsBindLR Name Name) -> Maybe (Named OutName (HsBindLR Name Name))
-namedBinding f (pid, mn, e@(FunBind _ _ _ _ _ _)) = Just ((f, pid, mn, unLoc (fun_id e)), e)
-namedBinding f (pid, mn, e@(VarBind _ _ _))       = Just ((f, pid, mn, var_id e),         e)
-namedBinding f _                                  = Nothing
+namedBinding :: Named (a, b, c) (HsBindLR Name Name) -> [Named (a, b, c, Name) (HsBindLR Name Name)]
+namedBinding ((f, pid, mn), e@(FunBind _ _ _ _ _ _)) = [((f, pid, mn, unLoc (fun_id e)), e)]
+namedBinding ((f, pid, mn), e@(VarBind _ _ _))       = [((f, pid, mn, var_id e),         e)]
+namedBinding _                                       = []
 
 -- | Gather all bindings from Haskell files and extract their names
 namedBindingsFrom :: HsFile -> Ghc [Named OutName (HsBindLR Name Name)]
 namedBindingsFrom f = do bindings <- bindingsFrom' f
-                         return (mapMaybe (namedBinding (unHs f)) bindings)
+                         return (concatMap namedBinding bindings)

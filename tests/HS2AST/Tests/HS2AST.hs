@@ -19,10 +19,10 @@ pureTests   = testGroup "Pure integration tests" [
                 , testProperty "Non-dodgy filenames are kept" nonDodgyKept
                 ]
 
-impureTests = testGroup "Monadic integration tests" [
+impureTests = testGroup "Monadic integration tests" [{-
                   testProperty "Outputs are real files" allOutputsWereGiven
                 , testProperty "Real files are outputted" allGivenAreOutput
-                ]
+                -}]
 
 tmpDir = "/tmp/HS2ASTTest"
 
