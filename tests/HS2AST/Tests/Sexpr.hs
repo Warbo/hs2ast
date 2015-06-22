@@ -75,9 +75,9 @@ sumKeepR x = let Just result = toSexp [] [] x
 
 -- | Fold an Sexpr
 foldsx :: (a -> b) -> ([b] -> b) -> Sexpr a -> b
-foldsx leaf node sx = case unExpr sx of
-  Left  x  -> leaf x
-  Right xs -> node (map (foldsx leaf node) xs)
+foldsx leaf node sx = case sx of
+  Leaf x  -> leaf x
+  Node xs -> node (map (foldsx leaf node) xs)
 
 anysx :: (a -> Bool) -> Sexpr a -> Bool
 anysx f = foldsx f (any id)

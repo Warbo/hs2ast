@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module HS2AST.Types (
+module HS2AST.Types {-(
    Haskell(H)
  , HsFile()
  , Sexpr(Leaf, Node)
@@ -13,30 +13,23 @@ module HS2AST.Types (
  , dummyTypes
  , runInSession
  , runGhc
- ) where
+ )-} where
 
-import Control.Applicative
 import Data.Char
 import Data.Data
 import Data.Generics.Uniplate.Data
 import Data.Maybe
 import DynFlags
 import ErrUtils
-import Exception
 import qualified GHC
 import GHC.Paths
 import GhcMonad
-import HscMain
-import HscTypes
 import Module
-import MonadUtils
 import Name
 import Outputable
 import TypeRep
-import Test.Arbitrary.Haskell
 
 -- Haskell files, with smart constructors
-
 -- | Haskell file paths
 newtype HsFile = Hs FilePath  deriving (Show, Eq, Ord)
 
@@ -55,8 +48,6 @@ toHs = mapMaybe mkHs
 unHs :: HsFile -> FilePath
 unHs (Hs f) = f
 
--- ASTs, with smart constructors
-
 -- | Arbitrary rose trees
 data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
 
@@ -65,10 +56,6 @@ mkLeaf x = Leaf (dummyTypes x)
 
 mkNode :: Data a => [Sexpr a] -> Sexpr a
 mkNode xs = Node (dummyTypes xs)
-
-unExpr :: Sexpr a -> Either a [Sexpr a]
-unExpr (Leaf x)  = Left  x
-unExpr (Node xs) = Right xs
 
 -- | Replace all Types in an AST with a dummy, to avoid pre-typecheck errors
 dummyTypes :: Data a => a -> a
@@ -102,12 +89,6 @@ inDefaultEnv x = do f <- getSessionDynFlags
                                                       (ModRenaming True [])]
                       })
                     x
-
--- Clobber runGhc, to make avoiding our API slightly harder
-
--- | Do not call 'runGHC' directly, use 'runInSession' instead
-runGhc :: Maybe FilePath -> Ghc a -> IO a
-runGhc = error "Do not call runGHC directly, use runInSession instead"
 
 -- Helpful instances
 instance Show Name where
