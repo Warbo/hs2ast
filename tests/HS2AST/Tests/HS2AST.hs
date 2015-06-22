@@ -14,8 +14,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 
 pureTests   = testGroup "Pure integration tests" [
-                  testProperty "Collating actions works" canCollateFiles
-                , testProperty "Haskell files are kept" hsKept
+                  testProperty "Haskell files are kept" hsKept
                 , testProperty "Dodgy filenames are skipped" dodgyDropped
                 , testProperty "Non-dodgy filenames are kept" nonDodgyKept
                 ]
@@ -24,12 +23,6 @@ impureTests = testGroup "Monadic integration tests" [
                   testProperty "Outputs are real files" allOutputsWereGiven
                 , testProperty "Real files are outputted" allGivenAreOutput
                 ]
-
-canCollateFiles ds' fs' = let size = min (length ds') (length fs')
-                              ds   = take size ds'
-                              fs   = take size fs'
-                              args = zip ds fs
-                          in  collateFiles args == (reverse ds, reverse fs)
 
 tmpDir = "/tmp/HS2ASTTest"
 
