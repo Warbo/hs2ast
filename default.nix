@@ -1,6 +1,6 @@
 { mkDerivation, ArbitraryHaskell, base, bytestring, containers
-, directory, ghc, ghc-paths, process, QuickCheck, stdenv, syb
-, tasty, tasty-quickcheck, temporary, transformers, uniplate
+, directory, ghc, ghc-paths, MissingH, process, QuickCheck, stdenv
+, syb, tasty, tasty-quickcheck, temporary, transformers, uniplate
 }:
 mkDerivation {
   pname = "HS2AST";
@@ -14,7 +14,7 @@ mkDerivation {
   ];
   testDepends = [
     ArbitraryHaskell base bytestring containers directory ghc ghc-paths
-    process QuickCheck syb tasty tasty-quickcheck temporary
+    MissingH process QuickCheck syb tasty tasty-quickcheck temporary
     transformers uniplate
   ];
   homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";

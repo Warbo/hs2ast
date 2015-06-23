@@ -55,11 +55,11 @@ executable HS2AST
   hs-source-dirs:      src
   default-language:    Haskell2010
 
-test-suite test
+test-suite pure
   default-language:    Haskell2010
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests, src
-  main-is:             Main.hs
+  main-is:             Pure.hs
   build-depends:       base >= 4.7
                      , ghc
                      , ghc-paths
@@ -75,3 +75,26 @@ test-suite test
                      , bytestring
                      , ArbitraryHaskell
                      , process
+                     , MissingH
+
+test-suite impure
+  default-language:    Haskell2010
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests, src
+  main-is:             Impure.hs
+  build-depends:       base >= 4.7
+                     , ghc
+                     , ghc-paths
+                     , QuickCheck
+                     , uniplate
+                     , tasty >= 0.7
+                     , tasty-quickcheck
+                     , directory
+                     , transformers
+                     , containers
+                     , temporary
+                     , syb
+                     , bytestring
+                     , ArbitraryHaskell
+                     , process
+                     , MissingH
