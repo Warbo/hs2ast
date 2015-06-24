@@ -17,7 +17,7 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 Library
-  build-depends:       base
+  build-depends:       base >=4.7
                      , ghc
                      , ghc-paths
                      , QuickCheck
