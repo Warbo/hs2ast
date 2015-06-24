@@ -6,26 +6,26 @@ import System.IO.Temp
 import Test.Arbitrary.Cabal
 import Test.Arbitrary.Haskell
 
-mod2Ast = print "hello world"
+testMain = print "hello world"
 
            -- Get our input modules from stdin
-mod2Ast2 = do input <- getContents
+mod2Ast = do input <- getContents
 
-              -- Build ASTs
-              result <- modsToAsts (lines input)
+             -- Build ASTs
+             result <- modsToAsts (lines input)
 
-              -- Print results to stdout
-              putStr (unlines result)
+             -- Print results to stdout
+             putStr (unlines result)
 
 modsToAsts = return . map reverse
 
 --mkCabal :: IO a
-mkCabal pkgs = withSystemTempDirectory "hs2ast" (useCabal pkgs)
+mkCabal pkgs main = withSystemTempDirectory "hs2ast" (useCabal pkgs main)
 
 --useCabal :: FilePath -> IO ()
-useCabal pkgs dir = do makeProject dir (genProject pkgs)
+useCabal pkgs main dir = do makeProject dir (genProject pkgs main)
 
-genProject pkgs = P {
+genProject pkgs main = P {
     name = "hs2astTemp"
   , version = [1]
   , headers  = S () [
@@ -45,7 +45,11 @@ genProject pkgs = P {
       ]
     ]
   , files = [
-      (([], "Main.hs"), H "")
+      (([], "Main.hs"), H (unlines [
+        "module Main where",
+        "import Mod2AST",
+        "main = " ++ main
+      ]))
     ]
   }
 
