@@ -2,8 +2,21 @@ module Mod2AST where
 
 import Control.Concurrent
 import Control.Exception (evaluate)
+import Control.Monad
 import Data.List
+import Data.List.Utils
+import Data.String.Utils
+import Distribution.Package
+import Distribution.PackageDescription
+import Distribution.PackageDescription.Parse
+import Distribution.PackageDescription.PrettyPrint
+import Distribution.Verbosity
+import Distribution.Version
+import GHC
 import HS2AST
+import HS2AST.Parser
+import HS2AST.Sexpr
+import HS2AST.Types
 import System.Directory
 import System.Exit
 import System.IO
@@ -23,7 +36,32 @@ mod2Ast = do input <- getContents
              -- Print results to stdout
              putStr (unlines result)
 
-modsToAsts = return . map reverse
+modsToAsts = modsToAstsWith []
+
+modsToAstsWith :: [String] -> [String] -> IO [String]
+modsToAstsWith pkgs mods = do asts <- runInSessionWith pkgs (modsToAsts' mods mods)
+                              return (map showAst asts)
+
+modsToAsts' :: [String] -> [String] -> Ghc [Named OutName AST]
+modsToAsts' mods []     = return []
+modsToAsts' mods (m:ms) = do ast  <- namedAstsM  mods m
+                             asts <- modsToAsts' mods ms
+                             return (ast ++ asts)
+
+namedAstsM mods m = do bindings <- namedBindingsFromM mods m
+                       return $ concatMap convertToNamed bindings
+
+nB2 (a, b, c, [])   = []
+nB2 (a, b, c, d:ds) = ((a, b, c), d) : nB2 (a, b, c, ds)
+
+namedBindingsFromM mods m = do bindings <- bindingsFromM mods m
+                               return (concatMap namedBinding (concatMap nB2 bindings))
+
+bindingsFromM mods m = do sumss <- graphAllMods [m] mods
+                          --IIDecl (simpleImportDecl (mkModuleName m))
+                          --  ]
+                          let sums = concat sumss
+                          mapM (renameMod "") sums
 
 mkCabal = mkCabalIn "hs2ast"
 
@@ -61,6 +99,7 @@ genProject pkgs main = P {
     ]
   }
 
+{-
 hs2astDeps = [ "base >= 4.7 && < 5"
              , "ghc"
              , "ghc-paths"
@@ -74,6 +113,7 @@ hs2astDeps = [ "base >= 4.7 && < 5"
              , "ArbitraryHaskell"
              , "temporary"
              ]
+-}
 
 cabal :: [String] -> FilePath -> String -> IO (ExitCode, String, String)
 cabal = readProcessWithExitCodeIn "cabal"
@@ -125,12 +165,11 @@ configureInShell dir = do
                               ["--run", "cabal configure -v"]
                               dir
                               ""
-  case code of
-   ExitSuccess -> return ()
-   _           -> do print (("Exit code", code),
-                            ("stdout", stdout),
-                            ("stderr", stderr))
-                     error "Failed to configure package"
+  when (code /= ExitSuccess) $ do
+    print (("Exit code", code),
+           ("stdout", stdout),
+           ("stderr", stderr))
+    error "Failed to configure package"
 
 shellNix dir = unlines [
     "with import <nixpkgs> {};"
@@ -155,3 +194,44 @@ runMain :: String -> FilePath -> IO (ExitCode, String, String)
 runMain stdin dir = do
   configureDeps dir
   cabal ["run", "Mods2Asts"] dir stdin
+
+extractCabalField fld cbl =
+  nub $ concatMap (map stripVersion . split "," . unlines)
+                  (extractCabalField' fld (lines cbl))
+
+extractCabalField' fld cbl = if null pre
+                                then []
+                                else (fst:rst) : extractCabalField' fld (tail pre)
+  where fld' = fld ++ ":"
+        -- Remove everything before the first occurence of this field
+        pre  = dropWhile (not . (fld' `isInfixOf`)) cbl
+        -- Remove everything up to and including the ':'
+        fst  = tail . dropWhile (/= ':') . head $ pre
+        -- Keep any subsequent lines, until we find one containing ':'
+        rst  = takeWhile (not . stop) . tail $ pre
+        stop l = let l' = strip l
+                 in ':'           `elem`       l' ||
+                    "test-suite " `isPrefixOf` l' ||
+                    "executable " `isPrefixOf` l' ||
+                    "library "    `isPrefixOf` l'
+
+stripVersion x = takeWhile (/= ' ') (strip x)
+
+alterCabal file func = do
+  pkg <- readPackageDescription silent file
+  writeGenericPackageDescription file (func pkg)
+
+alterDeps file = alterCabal file addHS2ASTDep
+
+addHS2ASTDep :: GenericPackageDescription -> GenericPackageDescription
+addHS2ASTDep p = p {
+    condLibrary     = fmap addToLib   (condLibrary     p)
+  , condExecutables = fmap addToNamed   (condExecutables p)
+  , condTestSuites  = fmap addToNamed  (condTestSuites  p)
+  , condBenchmarks  = fmap addToNamed (condBenchmarks p)
+  }
+  where addToNamed (s, t) = (s, addToLib t)
+        addToLib       t  = t {
+            condTreeConstraints = hs2ast : condTreeConstraints t
+          }
+        hs2ast = Dependency (PackageName "HS2AST") anyVersion

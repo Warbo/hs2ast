@@ -1,6 +1,7 @@
 module HS2AST.Parser where
 
 import Bag
+import Control.Monad
 import Data.Maybe
 import Digraph
 import GHC
@@ -42,12 +43,15 @@ extractDefs g = let vals  = hs_valds g
 
 -- | Get a topologically sorted graph of Haskell modules from the given files.
 graphMods :: HsFile -> Ghc [[ModSummary]]
-graphMods f = do target <- guessTarget (unHs f) Nothing
-                 addTarget target
-                 load LoadAllTargets
-                 graph <- depanal [] True
-                 let sorted = topSortModuleGraph True graph Nothing
-                 return (map flattenSCC sorted)
+graphMods f = graphAllMods [unHs f] []
+
+graphAllMods :: [String] -> [String] -> Ghc [[ModSummary]]
+graphAllMods i c = do mapM (\x -> guessTarget x Nothing >>= addTarget) i
+                      load LoadAllTargets
+                      --when (not (null c)) (setContext c)
+                      graph <- depanal [] True
+                      let sorted = topSortModuleGraph True graph Nothing
+                      return (map flattenSCC sorted)
 
 -- | Get all top-level bindings from a Haskell file
 bindingsFrom :: HsFile -> Ghc [(FilePath, PackageKey, ModuleName, [HsBindLR Name Name])]

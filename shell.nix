@@ -4,7 +4,7 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, ArbitraryHaskell, base, bytestring
+  f = { mkDerivation, ArbitraryHaskell, base, bytestring, Cabal
       , containers, directory, ghc, ghc-paths, MissingH, process
       , QuickCheck, stdenv, syb, tasty, tasty-quickcheck, temporary
       , transformers, uniplate
@@ -16,13 +16,13 @@ let
         isLibrary = true;
         isExecutable = true;
         buildDepends = [
-          ArbitraryHaskell base bytestring containers directory ghc ghc-paths
-          process QuickCheck syb temporary transformers uniplate
+          ArbitraryHaskell base bytestring Cabal containers directory ghc
+          ghc-paths process QuickCheck syb temporary transformers uniplate
         ];
         testDepends = [
-          ArbitraryHaskell base bytestring containers directory ghc ghc-paths
-          MissingH process QuickCheck syb tasty tasty-quickcheck temporary
-          transformers uniplate
+          ArbitraryHaskell base bytestring Cabal containers directory ghc
+          ghc-paths MissingH process QuickCheck syb tasty tasty-quickcheck
+          temporary transformers uniplate
         ];
         homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
         description = "Dump syntax trees of Haskell code";

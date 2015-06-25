@@ -6,6 +6,7 @@ import Data.Char
 import Data.List
 import Data.List.Utils
 import Data.String.Utils
+import HS2AST.Types
 import Mod2AST
 import System.Directory
 import System.Exit
@@ -23,12 +24,17 @@ pureTests   = testGroup "Pure Mod2AST tests" [
   ]
 
 impureTests = testGroup "Impure Mod2AST tests" [
-  {-testProperty "hs2astDeps matches our Cabal file"    hs2astDependenciesMatch
-  ,-} testProperty "Actions are run with project dir"     actionsAreRun
+    testProperty "Extract ASTs with pkgs"               extractAstsWithPkgs
+  , testProperty "Find GHC package path"                findGhcPath
+  , testProperty "HS2AST dependencies in HS2AST pkg DB" dependenciesInDb
+  , testProperty "Can add HS2AST as a dependency"       canAddHS2ASTDependency
+  {-testProperty "hs2astDeps matches our Cabal file"    hs2astDependenciesMatch-}
+  {-, testProperty "Actions are run with project dir"     actionsAreRun
   , testProperty "Temporary Cabal directory made"       projectDirMade
   , testProperty "Temporary Cabal directory cleaned up" projectDirCleanedUp
   , testProperty "Temporary Cabal project is valid"     projectIsValidCabal
   , testProperty "Can execute Main.hs"                  projectRunHelloWorld
+  , testProperty "Can get dependent-less module ASTs"   getEasyAsts-}
   ]
 
 projectHasPkgs pkgs = all (`elem` deps) pkgs'
@@ -41,16 +47,6 @@ projectHasPkgs pkgs = all (`elem` deps) pkgs'
 projectHasMain main = ("main = " ++ main') `elem` lines mainHs
   where main'           = filter (/= '\n') main
         Just (H mainHs) = lookup ([], "Main.hs") (files (genProject [] main'))
-
-hs2astDependenciesMatch = monadicIO $ do
-  cbl <- run $ readFile "HS2AST.cabal"
-  let deps  = extractCabalField "build-depends" cbl
-      match = all (`elem` map stripVersion deps)
-                         (map stripVersion hs2astDeps)
-  run $ if match then return ()
-                 else print (("hs2astDeps", hs2astDeps),
-                             ("extracted", deps))
-  assert match
 
 actionsAreRun :: String -> Int -> Property
 actionsAreRun main expected = monadicIO $ do
@@ -76,31 +72,71 @@ projectRunHelloWorld = monadicIO $ do
   when ran $ do assertMsg (code == ExitSuccess)            msg
                 assertMsg ("hello world" `elem` lines out) msg
 
-  where checkMain dir = do
-          c2n <- haveC2N
-          if c2n then do (code, out, err) <- runMain "" dir
-                         return (True, code, out, err)
-                 else do print "No cabal2nix, skipping test"
-                         return (False, undefined, undefined, undefined)
+  where checkMain = runIfC2N ""
+
+getEasyAsts = monadicIO $ do
+  asts <- run $ modsToAsts ["Data.List", "Data.Maybe"]
+  run $ print asts
+
+extractAstsFromBase = monadicIO $ do
+  (ran, code, out, err) <- run $ mkCabalIn "hs2asttest" [] "mod2Ast" doMain
+  let msg = (("Exit code", code), ("Stdout", out), ("Stderr", err))
+  run $ print msg
+  --when ran $ do assertMsg (code == ExitSuccess) msg
+  where doMain = runIfC2N (unlines ["Data.List", "Data.Maybe"])
+
+extractAstsWithPkgs = monadicIO $ do
+  deps <- run hs2astDeps
+  mods <- run hs2astMods
+  run $ print mods
+  out  <- run $ modsToAstsWith deps mods
+  run $ print out
+  assert False
+
+dependenciesInDb = monadicIO $ do
+  deps <- run hs2astDeps
+  db   <- run getGhcPkgs
+  pkgs <- run $ getDirectoryContents db
+  mapM (inDb pkgs) deps
+  where inDb []     dep                      = assertMsg False ("dep", dep)
+        inDb (p:ps) dep | dep `isPrefixOf` p = return ()
+        inDb (p:ps) dep                      = inDb ps dep
+
+findGhcPath = monadicIO $ do
+  path <- run getGhcPkgs
+  assertMsg ("/nix/store" `isPrefixOf` path) ("path", path)
+
+canAddHS2ASTDependency = monadicIO $ do
+  result <- run $ mkCabalIn "hs2asttest" [] "testMain" alterDeps
+  assert False
+  where alterDeps dir = do
+          contents <- getDirectoryContents dir
+          let cblFile' = head (filter (".cabal" `isSuffixOf`) contents)
+              cblFile  = dir ++ "/" ++ cblFile
+          cbl <- readFile cblFile
+          let deps = extractCabalField "build-depends" cbl
+          alterDeps cblFile
+          newCbl <- readFile cblFile
+          putStrLn "OLD"
+          putStrLn cbl
+          putStrLn "NEW"
+          putStrLn newCbl
+          return True
 
 -- Helpers
+
+runIfC2N stdin dir = do
+  c2n <- haveC2N
+  if c2n then do (code, out, err) <- runMain stdin dir
+                 return (True, code, out, err)
+         else do print "No cabal2nix, skipping test"
+                 return (False, undefined, undefined, undefined)
 
 debug :: Show a => Bool -> a -> PropertyM IO ()
 debug b x = run $ when b (print x)
 
 assertMsg b a = do run $ when (not b) $ print a
                    assert b
-
-extractCabalField fld cbl = split "," . unlines $ fst:rst
-  where fld' = fld ++ ":"
-        -- Remove everything before the first occurence of this field
-        pre  = dropWhile (not . (fld' `isInfixOf`)) (lines cbl)
-        -- Remove everything up to and including the ':'
-        fst  = tail . dropWhile (/= ':') . head $ pre
-        -- Keep any subsequent lines, until we find one containing ':'
-        rst  = takeWhile (not . (':' `elem`)) . tail $ pre
-
-stripVersion x = takeWhile (/= ' ') (strip x)
 
 haveCabal = haveProg "cabal" ["--help"]
 
@@ -126,3 +162,7 @@ cabalCheck dir = do
                                                   ("Stderr", sErr))
                                            return False
           else print "Cabal not available" >> return True
+
+hs2astCabal = readFile "HS2AST.cabal"
+hs2astDeps  = fmap (extractCabalField "build-depends")   hs2astCabal
+hs2astMods  = fmap (extractCabalField "exposed-modules") hs2astCabal

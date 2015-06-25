@@ -30,6 +30,7 @@ Library
                      , ArbitraryHaskell
                      , temporary
                      , process
+                     , Cabal
   exposed-modules:     Mod2AST
   other-modules:       HS2AST
                      , HS2AST.Parser
@@ -54,6 +55,7 @@ executable HS2AST
                      , containers
                      , ArbitraryHaskell
                      , process
+                     , Cabal
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -100,3 +102,4 @@ test-suite impure
                      , ArbitraryHaskell
                      , process
                      , MissingH
+                     , Cabal

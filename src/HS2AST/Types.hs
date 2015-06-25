@@ -10,6 +10,8 @@ module HS2AST.Types (
  , toHs
  , dummyTypes
  , runInSession
+ , runInSessionWith
+ , getGhcPkgs
  ) where
 
 import Data.Char
@@ -25,6 +27,8 @@ import Module
 import Name
 import Outputable
 import Packages
+import System.Directory
+import System.Process
 import TypeRep
 
 -- Haskell files, with smart constructors
@@ -72,27 +76,49 @@ instance Show a => Show (Sexpr a) where
 -- | Use this to start 'Ghc' computations. It is less flexible than 'runGhc',
 -- but avoids session-related runtime errors.
 runInSession :: Ghc a -> IO a
-runInSession = GHC.runGhc (Just libdir) . inDefaultEnv
+runInSession = runInSessionWith []
+
+runInSessionWith pkgs = GHC.runGhc (Just libdir) . inDefaultEnv pkgs
 
 dieErr flg lvl loc fmt msg = error (show (runSDoc (mkLocMessage lvl loc msg)
                                                   (initSDocContext flg fmt)))
 
-pkgDbs = map PkgConfFile ["/home/chris/Programming/Haskell/HS2AST/dist/package.conf.inplace"]
+pkgDbs = do
+  db <- getGhcPkgs
+  return (PkgConfFile db)
 
-inDefaultEnv x = do oldFlags <- getSessionDynFlags
-                    let newFlags = oldFlags {
-                        log_action   = dieErr
-                      , ghcLink      = LinkInMemory
-                      , hscTarget    = HscInterpreted
-                      -- Include all ghc package's modules, don't rename any
-                      , packageFlags = [ExposePackage (PackageArg "ghc")
-                                                      (ModRenaming True [])]
-                      -- Include this package's dependencies
-                      , extraPkgConfs = \x -> pkgDbs ++ extraPkgConfs oldFlags x
-                      }
-                    GHC.setSessionDynFlags newFlags
-                    liftIO $ initPackages newFlags
-                    x
+getGhcPkgs :: IO FilePath
+getGhcPkgs = do
+  output <- readProcess "nix-shell" ["--run", "ghc-pkg list"] ""
+  return (takeWhile (/= ':') (head (lines output)))
+
+getDirs :: IO [FilePath]
+getDirs = do
+  cwd <- getCurrentDirectory
+  out <- readProcess "find" [cwd, "-type", "d"] ""
+  return (lines out)
+
+inDefaultEnv pkgs x = do oldFlags <- getSessionDynFlags
+                         pkgDb <- liftIO pkgDbs
+                         dirs  <- liftIO getDirs
+                         let newFlags = oldFlags {
+                             log_action   = dieErr
+                           , ghcLink      = LinkInMemory
+                           , hscTarget    = HscInterpreted
+                           -- Include all ghc package's modules, don't rename any
+                           , packageFlags = map exposePkg ("ghc":[]{-pkgs-})
+                           -- Include this package's dependencies
+                           , extraPkgConfs = (pkgDb:)
+                           -- Include all directories, just in case (HACK)
+                           --, includePaths = dirs  -- C header includes?
+                           , importPaths  = dirs
+                           --, libraryPaths = dirs
+                         }
+                         GHC.setSessionDynFlags newFlags
+                         liftIO $ initPackages newFlags
+                         x
+
+exposePkg p = ExposePackage (PackageArg p) (ModRenaming True [])
 
 -- Helpful instances
 instance Show Name where
