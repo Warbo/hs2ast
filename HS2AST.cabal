@@ -30,6 +30,7 @@ Library
                      , ArbitraryHaskell
                      , temporary
                      , process
+                     , MissingH
                      , Cabal
   exposed-modules:     Mod2AST
   other-modules:       HS2AST
@@ -80,6 +81,7 @@ test-suite pure
                      , ArbitraryHaskell
                      , process
                      , MissingH
+                     , Cabal
 
 test-suite impure
   default-language:    Haskell2010

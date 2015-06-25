@@ -17,7 +17,8 @@ let
         isExecutable = true;
         buildDepends = [
           ArbitraryHaskell base bytestring Cabal containers directory ghc
-          ghc-paths process QuickCheck syb temporary transformers uniplate
+          ghc-paths MissingH process QuickCheck syb temporary transformers
+          uniplate
         ];
         testDepends = [
           ArbitraryHaskell base bytestring Cabal containers directory ghc
