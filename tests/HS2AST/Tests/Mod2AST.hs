@@ -24,17 +24,14 @@ pureTests   = testGroup "Pure Mod2AST tests" [
   ]
 
 impureTests = testGroup "Impure Mod2AST tests" [
-    testProperty "Extract ASTs with pkgs"               extractAstsWithPkgs
-  , testProperty "Find GHC package path"                findGhcPath
+    testProperty "Find GHC package path"                findGhcPath
   , testProperty "HS2AST dependencies in HS2AST pkg DB" dependenciesInDb
-  , testProperty "Can add HS2AST as a dependency"       canAddHS2ASTDependency
-  {-testProperty "hs2astDeps matches our Cabal file"    hs2astDependenciesMatch-}
-  {-, testProperty "Actions are run with project dir"     actionsAreRun
+  --, testProperty "Can add HS2AST as a dependency"       canAddHS2ASTDependency  SEE FIXME
+  , testProperty "Actions are run with project dir"     actionsAreRun
   , testProperty "Temporary Cabal directory made"       projectDirMade
   , testProperty "Temporary Cabal directory cleaned up" projectDirCleanedUp
   , testProperty "Temporary Cabal project is valid"     projectIsValidCabal
   , testProperty "Can execute Main.hs"                  projectRunHelloWorld
-  , testProperty "Can get dependent-less module ASTs"   getEasyAsts-}
   ]
 
 projectHasPkgs pkgs = all (`elem` deps) pkgs'
@@ -74,24 +71,12 @@ projectRunHelloWorld = monadicIO $ do
 
   where checkMain = runIfC2N ""
 
-getEasyAsts = monadicIO $ do
-  asts <- run $ modsToAsts ["Data.List", "Data.Maybe"]
-  run $ print asts
-
 extractAstsFromBase = monadicIO $ do
   (ran, code, out, err) <- run $ mkCabalIn "hs2asttest" [] "mod2Ast" doMain
   let msg = (("Exit code", code), ("Stdout", out), ("Stderr", err))
   run $ print msg
   --when ran $ do assertMsg (code == ExitSuccess) msg
   where doMain = runIfC2N (unlines ["Data.List", "Data.Maybe"])
-
-extractAstsWithPkgs = monadicIO $ do
-  deps <- run hs2astDeps
-  mods <- run hs2astMods
-  run $ print mods
-  out  <- run $ modsToAstsWith deps mods
-  run $ print out
-  assert False
 
 dependenciesInDb = monadicIO $ do
   deps <- run hs2astDeps
@@ -106,6 +91,7 @@ findGhcPath = monadicIO $ do
   path <- run getGhcPkgs
   assertMsg ("/nix/store" `isPrefixOf` path) ("path", path)
 
+-- FIXME: Hangs the test suite when we get to readFile
 canAddHS2ASTDependency = monadicIO $ do
   result <- run $ mkCabalIn "hs2asttest" [] "testMain" alterDeps
   assert False

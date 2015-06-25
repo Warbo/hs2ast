@@ -7,7 +7,7 @@ import qualified HS2AST.Tests.Mod2AST as M
 import qualified HS2AST.Tests.Parser  as P
 import qualified HS2AST.Tests.Sexpr   as S
 
-withOptions = localOption (QuickCheckTests 10)
+withOptions = localOption (QuickCheckTests 1)
 
 main = defaultMain $ withOptions $ testGroup "Impure tests" [
     H.impureTests
