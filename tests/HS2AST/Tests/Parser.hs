@@ -1,6 +1,7 @@
 module HS2AST.Tests.Parser (pureTests, impureTests) where
 
 import Control.Exception (SomeException, bracket)
+import Control.Monad
 import GhcMonad
 import HS2AST.Parser
 import HS2AST.Types
@@ -26,8 +27,9 @@ impureTests = testGroup "Monadic parser tests" [
 -- | IO test with non-empty list argument
 ioNE func file = monadicIO (func file)
 
-noEmptyModuleSummary f = do Right g <- go (graphMods f)
-                            assert (not (null g))
+noEmptyModuleSummary f = do ns <- run haveNS
+                            when ns $ do Right g <- go (graphMods f)
+                                         assert (not (null g))
 
 parseErrorsCauseAbort = monadicIO $ do
   f      <- pick arbBad
@@ -38,10 +40,12 @@ parseErrorsCauseAbort = monadicIO $ do
 
 parsePath p = runInSession (fmap (not . null) (bindingsFrom p))
 
-canGetBindings fs = do result <- go (bindingsFrom fs)
-                       case result of
-                            Right xs -> assert (not (null xs))
-                            Left  e  -> showErr e
+canGetBindings fs = do
+  ns <- run haveNS
+  when ns $ do result <- go (bindingsFrom fs)
+               case result of
+                    Right xs -> assert (not (null xs))
+                    Left  e  -> showErr e
 
 -- | Run Ghc-wrapped computations in QuickCheck
 go :: Ghc a -> PropertyM IO (Either SomeException a)

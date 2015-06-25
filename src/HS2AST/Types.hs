@@ -12,8 +12,11 @@ module HS2AST.Types (
  , runInSession
  , runInSessionWith
  , getGhcPkgs
+ , haveProg
+ , haveNS
  ) where
 
+import Control.Exception (SomeException, try)
 import Data.Char
 import Data.Data
 import Data.Generics.Uniplate.Data
@@ -28,6 +31,7 @@ import Name
 import Outputable
 import Packages
 import System.Directory
+import System.Exit
 import System.Process
 import TypeRep
 
@@ -89,8 +93,21 @@ pkgDbs = do
 
 getGhcPkgs :: IO FilePath
 getGhcPkgs = do
-  output <- readProcess "nix-shell" ["--run", "ghc-pkg list"] ""
-  return (takeWhile (/= ':') (head (lines output)))
+  ns <- haveNS
+  if ns then do output <- readProcess "nix-shell" ["--run", "ghc-pkg list"] ""
+                return (takeWhile (/= ':') (head (lines output)))
+        else return ""
+
+haveProg cmd args = do
+  found <- try (readProcessWithExitCode
+                  cmd
+                  args
+                  "") :: IO (Either SomeException (ExitCode, String, String))
+  case found of
+       Left  _ -> print ("Cannot run '" ++ cmd ++ "'") >> return False
+       Right _ -> return True
+
+haveNS = haveProg "nix-shell" ["--help"]
 
 getDirs :: IO [FilePath]
 getDirs = do

@@ -79,22 +79,25 @@ extractAstsFromBase = monadicIO $ do
   where doMain = runIfC2N (unlines ["Data.List", "Data.Maybe"])
 
 dependenciesInDb = monadicIO $ do
-  deps <- run hs2astDeps
-  db   <- run getGhcPkgs
-  pkgs <- run $ getDirectoryContents db
-  mapM (inDb pkgs) deps
+  ns <- run haveNS
+  when ns $ do deps <- run hs2astDeps
+               db   <- run getGhcPkgs
+               pkgs <- run $ getDirectoryContents db
+               mapM_ (inDb pkgs) deps
   where inDb []     dep                      = assertMsg False ("dep", dep)
         inDb (p:ps) dep | dep `isPrefixOf` p = return ()
         inDb (p:ps) dep                      = inDb ps dep
 
 findGhcPath = monadicIO $ do
-  path <- run getGhcPkgs
-  assertMsg ("/nix/store" `isPrefixOf` path) ("path", path)
+  ns <- run haveNS
+  when ns $ do path <- run getGhcPkgs
+               assertMsg ("/nix/store" `isPrefixOf` path) ("path", path)
 
 -- FIXME: Hangs the test suite when we get to readFile
 canAddHS2ASTDependency = monadicIO $ do
-  result <- run $ mkCabalIn "hs2asttest" [] "testMain" alterDeps
-  assert False
+  ns <- run haveNS
+  when ns $ do result <- run $ mkCabalIn "hs2asttest" [] "testMain" alterDeps
+               assert False
   where alterDeps dir = do
           contents <- getDirectoryContents dir
           let cblFile' = head (filter (".cabal" `isSuffixOf`) contents)
@@ -125,15 +128,6 @@ assertMsg b a = do run $ when (not b) $ print a
                    assert b
 
 haveCabal = haveProg "cabal" ["--help"]
-
-haveProg cmd args = do
-  found <- try (readProcessWithExitCode
-                  cmd
-                  args
-                  "") :: IO (Either SomeException (ExitCode, String, String))
-  case found of
-       Left  _ -> print ("Cannot run '" ++ cmd ++ "'") >> return False
-       Right _ -> return True
 
 haveC2N = haveProg "cabal2nix" ["--help"]
 
