@@ -10,7 +10,7 @@ mkDerivation {
   isExecutable = true;
   buildDepends = [
     ArbitraryHaskell base bytestring containers directory ghc ghc-paths
-    QuickCheck syb temporary transformers uniplate
+    process QuickCheck syb temporary transformers uniplate
   ];
   testDepends = [
     ArbitraryHaskell base bytestring containers directory ghc ghc-paths

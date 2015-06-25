@@ -4,6 +4,7 @@ import Control.Concurrent
 import Control.Exception (evaluate)
 import Data.List
 import HS2AST
+import System.Directory
 import System.Exit
 import System.IO
 import System.IO.Temp
@@ -11,7 +12,7 @@ import System.Process
 import Test.Arbitrary.Cabal
 import Test.Arbitrary.Haskell
 
-testMain = print "hello world"
+testMain = putStrLn "hello world"
 
            -- Get our input modules from stdin
 mod2Ast = do input <- getContents
@@ -48,7 +49,7 @@ genProject pkgs main = P {
   , sections = [
     S "executable Mods2Asts" [
         ("main-is", "Main.hs")
-      , ("build-depends", intercalate "," (pkgs ++ hs2astDeps))
+      , ("build-depends", intercalate "," ("HS2AST":"base >= 4.7 && < 5":pkgs))
       ]
     ]
   , files = [
@@ -74,12 +75,14 @@ hs2astDeps = [ "base >= 4.7 && < 5"
              , "temporary"
              ]
 
+cabal :: [String] -> FilePath -> String -> IO (ExitCode, String, String)
+cabal = readProcessWithExitCodeIn "cabal"
+
 -- A specialised version of readProcessWithExitCode, since that doesn't allow
 -- setting the working directory :(
-cabal :: [String] -> FilePath -> String -> IO (ExitCode, String, String)
-cabal args dir sin = do
+readProcessWithExitCodeIn cmd args dir stdin = do
   -- Fire off the process, getting handles back
-  (hIn, hOut, hErr, p) <- runInteractiveProcess "cabal" args (Just dir) Nothing
+  (hIn, hOut, hErr, p) <- runInteractiveProcess cmd args (Just dir) Nothing
 
   -- Read the handles
   out <- hGetContents hOut
@@ -91,8 +94,8 @@ cabal args dir sin = do
   forkIO $ evaluate (length err) >> putMVar outMVar ()
 
   -- Send input, if we were given some
-  if null sin then return ()
-              else hPutStr hIn sin >> hFlush hIn
+  if null stdin then return ()
+                else hPutStr hIn stdin >> hFlush hIn
   hClose hIn
 
   -- Wait for process and threads to complete
@@ -102,3 +105,53 @@ cabal args dir sin = do
   code <- waitForProcess p
 
   return (code, out, err)
+
+cabal2nix :: FilePath -> IO String
+cabal2nix dir = do
+  (code, stdout, stderr) <- readProcessWithExitCode "cabal2nix"
+                                                    [dir]
+                                                    ""
+  case code of
+       ExitSuccess   -> return stdout
+       ExitFailure _ -> do print (("Exit code", code),
+                                  ("Stdout", stdout),
+                                  ("Stderr", stderr))
+                           error "Failed to run cabal2nix"
+
+configureInShell :: FilePath -> IO ()
+configureInShell dir = do
+  (code, stdout, stderr) <-
+    readProcessWithExitCodeIn "nix-shell"
+                              ["--run", "cabal configure -v"]
+                              dir
+                              ""
+  case code of
+   ExitSuccess -> return ()
+   _           -> do print (("Exit code", code),
+                            ("stdout", stdout),
+                            ("stderr", stderr))
+                     error "Failed to configure package"
+
+shellNix dir = unlines [
+    "with import <nixpkgs> {};"
+  , "let call = haskellPackages.callPackage;"
+  , "    pkg  = call ./. {"
+  , "             HS2AST = haskell.lib.dontCheck (call " ++ dir ++ " {});"
+  , "           };"
+  , "in pkg.env"
+  ]
+
+writeShellNix dir = do
+  cwd     <- getCurrentDirectory
+  content <- cabal2nix dir
+  writeFile (dir ++ "/default.nix") content
+  writeFile (dir ++ "/shell.nix") (shellNix cwd)
+
+configureDeps dir = do
+  writeShellNix dir
+  configureInShell dir
+
+runMain :: String -> FilePath -> IO (ExitCode, String, String)
+runMain stdin dir = do
+  configureDeps dir
+  cabal ["run", "Mods2Asts"] dir stdin

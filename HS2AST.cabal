@@ -29,6 +29,7 @@ Library
                      , containers
                      , ArbitraryHaskell
                      , temporary
+                     , process
   exposed-modules:     Mod2AST
   other-modules:       HS2AST
                      , HS2AST.Parser
@@ -52,6 +53,7 @@ executable HS2AST
                      , bytestring
                      , containers
                      , ArbitraryHaskell
+                     , process
   hs-source-dirs:      src
   default-language:    Haskell2010
 
