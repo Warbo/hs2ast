@@ -33,7 +33,7 @@ Library
                      , MissingH
                      , Cabal
   exposed-modules:     Mod2AST
-  other-modules:       HS2AST
+                     , HS2AST
                      , HS2AST.Parser
                      , HS2AST.Sexpr
                      , HS2AST.Types
