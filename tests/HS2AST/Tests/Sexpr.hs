@@ -4,7 +4,6 @@ import Debug.Trace
 import Data.Typeable
 import Data.Data
 import Control.Applicative
-import HS2AST.Parser
 import HS2AST.Sexpr
 import HS2AST.Types
 import HS2AST.Tests.Generators

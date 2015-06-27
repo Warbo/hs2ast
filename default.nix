@@ -7,8 +7,6 @@ mkDerivation {
   pname = "HS2AST";
   version = "0.1.0.0";
   src = ./.;
-  isLibrary = true;
-  isExecutable = true;
   buildDepends = [
     ArbitraryHaskell base bytestring Cabal containers directory ghc
     ghc-paths MissingH process QuickCheck syb temporary transformers
