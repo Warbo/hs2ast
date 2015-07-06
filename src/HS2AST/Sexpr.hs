@@ -2,18 +2,27 @@
 
 module HS2AST.Sexpr where
 
-import           Data.ByteString (ByteString)
-import           Data.ByteString.Char8 (unpack)
-import           SrcLoc
-import           HsBinds
-import           Data.Generics
-import           Name
-import           Data.Data
-import           HS2AST.Types
-import           Data.Maybe
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (unpack)
+import Data.Data
+import Data.Generics
+import Data.Generics.Uniplate.Data
+import Data.Maybe
+import HS2AST.Types
+import HsBinds
+import Name
+import SrcLoc
+import TypeRep
 
--- Useful for discarding a load of information from GHC's complex AST types
-type AST = Sexpr String
+mkLeaf :: Data a => a -> Sexpr a
+mkLeaf x = Leaf (dummyTypes x)
+
+mkNode :: Data a => [Sexpr a] -> Sexpr a
+mkNode xs = Node (dummyTypes xs)
+
+-- | Replace all Types in an AST with a dummy, to avoid pre-typecheck errors
+dummyTypes :: Data a => a -> a
+dummyTypes = transformBi (const (LitTy (NumTyLit 0)))
 
 convertBinding :: HsBindLR Name Name -> Maybe AST
 convertBinding = simpleAst . dummyTypes

@@ -5,7 +5,7 @@ import           Test.Tasty.QuickCheck
 import qualified HS2AST.Tests.HS2AST  as H
 import qualified HS2AST.Tests.Sexpr   as S
 
-withOptions = localOption (QuickCheckTests 1)
+withOptions = localOption (QuickCheckTests 10)
 
 main = defaultMain $ withOptions $ testGroup "Impure tests" [
     H.impureTests

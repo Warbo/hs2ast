@@ -1,37 +1,39 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, OverloadedStrings #-}
 
-module HS2AST.Types (
-   Sexpr(Leaf, Node)
- , mkLeaf
- , mkNode
- , dummyTypes
- ) where
+module HS2AST.Types where
 
-import Control.Exception (SomeException, try)
-import Data.Char
+import Data.Aeson
 import Data.Data
-import Data.Generics.Uniplate.Data
-import Data.Maybe
+import Data.Stringable
 import Module
 import Name
 import Packages
-import System.Directory
-import System.Exit
-import System.Process
-import TypeRep
 
 -- | Arbitrary rose trees
 data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
 
-mkLeaf :: Data a => a -> Sexpr a
-mkLeaf x = Leaf (dummyTypes x)
+type AST = Sexpr String
 
-mkNode :: Data a => [Sexpr a] -> Sexpr a
-mkNode xs = Node (dummyTypes xs)
+-- FIXME: Replace Sexpr with some existing implementation. sexp and sexpr don't
+-- build with GHC 7.10, but attolisp does
 
--- | Replace all Types in an AST with a dummy, to avoid pre-typecheck errors
-dummyTypes :: Data a => a -> a
-dummyTypes = transformBi (const (LitTy (NumTyLit 0)))
+data Out   = Out {
+    outPackage :: String
+  , outModule  :: String
+  , outName    :: String
+  , outAst     :: AST
+  }
+
+instance ToJSON Out where
+  toJSON o = object [
+      "package" .=       outPackage o
+    , "module"  .=       outModule  o
+    , "name"    .=       outName    o
+    , "ast"     .= show (outAst     o)
+    ]
+
+instance Show Out where
+  show = toString . encode . toJSON
 
 instance Functor Sexpr where
   fmap f (Leaf x)  = Leaf (f x)

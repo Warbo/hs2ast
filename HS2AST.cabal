@@ -28,6 +28,8 @@ Library
                      , temporary
                      , process
                      , MissingH
+                     , aeson
+                     , stringable
   exposed-modules:     HS2AST.Sexpr
                      , HS2AST.Types
   hs-source-dirs:      src
@@ -44,6 +46,7 @@ test-suite pure
                      , tasty-quickcheck
                      , ArbitraryHaskell
                      , HS2AST
+                     , aeson
                      , containers
                      , directory
                      , process
@@ -58,6 +61,7 @@ test-suite impure
                      , tasty >= 0.7
                      , tasty-quickcheck
                      , HS2AST
+                     , aeson
                      , ArbitraryHaskell
                      , containers
                      , directory

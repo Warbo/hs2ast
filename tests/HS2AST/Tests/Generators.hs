@@ -1,13 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module HS2AST.Tests.Generators (
-   unique
- ) where
+module HS2AST.Tests.Generators where
 
-import HS2AST.Types
 import Control.Applicative
 import Data.Data
 import qualified Data.Set as Set
+import HS2AST.Sexpr
+import HS2AST.Types
 import System.Directory
 import Test.QuickCheck
 
