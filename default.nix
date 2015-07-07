@@ -13,7 +13,7 @@ mkDerivation {
   ];
   testDepends = [
     aeson ArbitraryHaskell atto-lisp attoparsec base containers
-    directory process QuickCheck tasty tasty-quickcheck
+    directory process QuickCheck stringable tasty tasty-quickcheck
   ];
   homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
   description = "Dump syntax trees of Haskell code";

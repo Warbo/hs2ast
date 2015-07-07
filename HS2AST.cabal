@@ -54,6 +54,7 @@ test-suite pure
                      , process
                      , atto-lisp
                      , attoparsec
+                     , stringable
 test-suite impure
   default-language:    Haskell2010
   type:                exitcode-stdio-1.0
@@ -71,3 +72,4 @@ test-suite impure
                      , process
                      , atto-lisp
                      , attoparsec
+                     , stringable
