@@ -3,6 +3,7 @@
 module HS2AST.Tests.Generators where
 
 import Control.Applicative
+import qualified Data.AttoLisp              as L
 import Data.Data
 import qualified Data.Set as Set
 import HS2AST.Sexpr
@@ -12,7 +13,7 @@ import Test.QuickCheck
 
 -- Arbitrary instances
 
-instance (Data a, Arbitrary a) => Arbitrary (Sexpr a) where
+instance Arbitrary L.Lisp where
   arbitrary = let f 0 = mkLeaf <$> arbitrary
                   f n = mkNode <$> divideBetween f n
               in choose (0, 500) >>= f

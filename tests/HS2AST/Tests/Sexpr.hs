@@ -1,9 +1,11 @@
 module HS2AST.Tests.Sexpr (impureTests, pureTests) where
 
-import Debug.Trace
-import Data.Typeable
-import Data.Data
 import Control.Applicative
+import qualified Data.AttoLisp              as L
+import Data.Data
+import Data.Stringable as S
+import Data.Typeable
+import Debug.Trace
 import HS2AST.Sexpr
 import HS2AST.Types
 import HS2AST.Tests.Generators
@@ -29,10 +31,10 @@ intToSexpr :: Int -> Bool
 intToSexpr i = toSx [] [] i == Just (mkLeaf (show i))
 
 -- Simplified Sexpr builders; don't perform generic type-matching stuff
-sLeaf :: Data a => a -> Sexpr String
+sLeaf :: Data a => a -> L.Lisp
 sLeaf = mkLeaf . strConstr
 
-sList :: Data a => [a] -> Sexpr String
+sList :: Data a => [a] -> L.Lisp
 sList l@[]     = sLeaf l
 sList l@(x:xs) = mkNode [sLeaf l, sList xs]
 
@@ -73,10 +75,10 @@ sumKeepR x = let Just result = toSexp [] [] x
              in  anyTrue result == (x == Right True)
 
 -- | Fold an Sexpr
-foldsx :: (a -> b) -> ([b] -> b) -> Sexpr a -> b
+foldsx :: (String -> b) -> ([b] -> b) -> L.Lisp -> b
 foldsx leaf node sx = case sx of
-  Leaf x  -> leaf x
-  Node xs -> node (map (foldsx leaf node) xs)
+  L.String x  -> leaf (S.toString x)
+  L.List   xs -> node (map (foldsx leaf node) xs)
 
-anysx :: (a -> Bool) -> Sexpr a -> Bool
+anysx :: (String -> Bool) -> L.Lisp -> Bool
 anysx f = foldsx f (any id)
