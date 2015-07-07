@@ -30,6 +30,8 @@ Library
                      , MissingH
                      , aeson
                      , stringable
+                     , atto-lisp
+                     , attoparsec
   exposed-modules:     HS2AST.Sexpr
                      , HS2AST.Types
   hs-source-dirs:      src
@@ -50,7 +52,8 @@ test-suite pure
                      , containers
                      , directory
                      , process
-
+                     , atto-lisp
+                     , attoparsec
 test-suite impure
   default-language:    Haskell2010
   type:                exitcode-stdio-1.0
@@ -66,3 +69,5 @@ test-suite impure
                      , containers
                      , directory
                      , process
+                     , atto-lisp
+                     , attoparsec
