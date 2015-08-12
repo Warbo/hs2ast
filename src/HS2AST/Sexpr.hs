@@ -53,24 +53,38 @@ simpleAst :: Data a => a -> Maybe L.Lisp
 simpleAst = toSexp
 
 strConstr :: Data a => a -> L.Lisp
-strConstr = extQ (extQ (extQ (extQ (extQ (mkLeaf . show . toConstr)
-            showBS) showNameString) showVar) showDataCon) showTycon
+strConstr = extQ (extQ (extQ (extQ (mkLeaf . show . toConstr)
+            showBS) showVar) showDataCon) showTycon
+
 
 
 showTycon :: T.TyCon -> L.Lisp
-showTycon t = mkNode (mkLeaf "TyCon"  : mkLeaf (show $ T.tyConName t) : [])
+showTycon t = let name = T.tyConName t
+                  mdpkg = getModPkg (nameModule_maybe name)
+              in case mdpkg of
+                Just(m, p)   -> mkNode [mkLeaf "TyCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
+                              , mkNode[mkLeaf "pkg", mkLeaf p]]]
+                Nothing      -> mkNode [mkLeaf "TyCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
+
 
 
 showDataCon :: DataCon -> L.Lisp
-showDataCon d = mkNode (mkLeaf "DataCon" : mkLeaf (show $ getName d) : [])
+showDataCon d = let name = getName d
+                    mdpkg = getModPkg (nameModule_maybe name)
+                in case mdpkg of
+                    Just(m, p)   -> mkNode [mkLeaf "DataCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
+                                  , mkNode[mkLeaf "pkg", mkLeaf p]]]
+                    Nothing      -> mkNode [mkLeaf "DataCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
+
+
 
 showVar :: Var -> L.Lisp
 showVar v = let name = Var.varName v
                 mdpkg = getModPkg (nameModule_maybe name)
-                in case mdpkg of
-                    Just(m, p)   -> mkNode [mkLeaf "Var" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
-                                  , mkNode[mkLeaf "pkg", mkLeaf p]]]
-                    Nothing      -> mkNode [mkLeaf "Var" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
+            in case mdpkg of
+                Just(m, p)   -> mkNode [mkLeaf "Var" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
+                              , mkNode[mkLeaf "pkg", mkLeaf p]]]
+                Nothing      -> mkNode [mkLeaf "Var" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
 
 
 
@@ -80,6 +94,3 @@ getModPkg (Just m) = Just (moduleNameString (moduleName m), packageKeyString  (m
 
 showBS :: ByteString -> L.Lisp
 showBS bs = mkNode (mkLeaf "BS" : mkLeaf (unpack bs) : [])
-
-showNameString :: Name -> L.Lisp
-showNameString n = mkNode (mkLeaf "Name" : mkLeaf (show n) : [])
