@@ -19,7 +19,7 @@ let
         ];
         testDepends = [
           aeson ArbitraryHaskell atto-lisp attoparsec base containers
-          directory process QuickCheck stringable tasty tasty-quickcheck
+          directory ghc process QuickCheck stringable tasty tasty-quickcheck
         ];
         homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
         description = "Dump syntax trees of Haskell code";
