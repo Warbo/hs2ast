@@ -79,7 +79,7 @@ showDataCon d = let name = getName d
 
 
 showVar :: Var -> L.Lisp
-showVar v = let name = Var.varName v
+showVar v = let name = getName v
                 mdpkg = getModPkg (nameModule_maybe name)
             in case mdpkg of
                 Just(m, p)   -> mkNode [mkLeaf "Var" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]

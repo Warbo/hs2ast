@@ -1,16 +1,17 @@
-{-# LANGUAGE DeriveDataTypeable, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module HS2AST.Types where
 
-import Control.Monad
-import Data.Aeson
+import           Control.Monad
+import           Data.Aeson
 import qualified Data.AttoLisp              as L
 import qualified Data.Attoparsec.ByteString as AB
-import Data.Data
-import Data.Stringable
-import Module
-import Name
-import Packages
+import           Data.Data
+import           Data.Stringable
+import           Module
+import           Name
+import           Packages
 
 -- | Arbitrary rose trees
 data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
