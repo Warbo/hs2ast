@@ -44,7 +44,7 @@ instance FromJSON Out where
     ast    <- case AB.maybeResult . AB.parse L.lisp . fromString $ rawAst of
                    Nothing -> mzero
                    Just x  -> return x
-    return $ Out {
+    return Out {
         outPackage = p
       , outModule  = m
       , outName    = n

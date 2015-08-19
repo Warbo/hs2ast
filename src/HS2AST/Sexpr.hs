@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE RankNTypes         #-}
 
@@ -30,7 +29,7 @@ mkLeaf :: String -> L.Lisp
 mkLeaf x = L.String (S.fromString x)
 
 mkNode :: [L.Lisp] -> L.Lisp
-mkNode xs = L.List xs
+mkNode = L.List
 
 
 
@@ -93,4 +92,4 @@ getModPkg Nothing = Nothing
 getModPkg (Just m) = Just (moduleNameString (moduleName m), packageKeyString  (modulePackageKey m))
 
 showBS :: ByteString -> L.Lisp
-showBS bs = mkNode (mkLeaf "BS" : mkLeaf (unpack bs) : [])
+showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]

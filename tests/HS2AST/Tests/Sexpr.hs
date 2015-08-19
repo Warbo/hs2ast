@@ -48,7 +48,7 @@ foldsx leaf node sx = case sx of
   L.List   xs -> node (map (foldsx leaf node) xs)
 
 anysx :: (String -> Bool) -> L.Lisp -> Bool
-anysx f = foldsx f (any id)
+anysx f = foldsx f or
 
 -- instance Show Var where
 --     show = showVar
