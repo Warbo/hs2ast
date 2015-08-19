@@ -31,41 +31,45 @@ mkLeaf x = L.String (S.fromString x)
 mkNode :: [L.Lisp] -> L.Lisp
 mkNode = L.List
 
-
-
 convertBinding :: HsBindLR Name Name -> Maybe L.Lisp
-convertBinding = simpleAst
+convertBinding = toSexp
 
 -- | Convert Data instances to s-expressions
 toSexp :: Data a => a -> Maybe L.Lisp
 toSexp x = let tail = gmapQ toSexp  x
                head = toSx  x
-               in  case head of
+            in case head of
                     Nothing -> Nothing
                     Just y  -> Just (mkNode (y : catMaybes tail))
 
 toSx :: Data a =>  a -> Maybe L.Lisp
-toSx x = let l = strConstr x
-         in  Just l
+toSx = Just . strConstr
 
 simpleAst :: Data a => a -> Maybe L.Lisp
 simpleAst = toSexp
 
 strConstr :: Data a => a -> L.Lisp
-strConstr = extQ (extQ (extQ (extQ (mkLeaf . show . toConstr)
-            showBS) showVar) showDataCon) showTycon
-
-
+strConstr = let def = mkLeaf . show . toConstr
+             in extQ (extQ (extQ (extQ def
+                                       showBS)
+                                 showVar)
+                           showDataCon)
+                     showTycon
 
 showTycon :: T.TyCon -> L.Lisp
-showTycon t = let name = T.tyConName t
+showTycon t = let name  = T.tyConName t
                   mdpkg = getModPkg (nameModule_maybe name)
-              in case mdpkg of
-                Just(m, p)   -> mkNode [mkLeaf "TyCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
-                              , mkNode[mkLeaf "pkg", mkLeaf p]]]
-                Nothing      -> mkNode [mkLeaf "TyCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
-
-
+               in case mdpkg of
+                       Just (m, p) -> mkNode [mkLeaf "TyCon",
+                                              mkNode [mkNode [mkLeaf "name",
+                                                              mkLeaf $ show name],
+                                                      mkNode [mkLeaf "mod",
+                                                              mkLeaf m],
+                                                      mkNode [mkLeaf "pkg",
+                                                              mkLeaf p]]]
+                       Nothing     -> mkNode [mkLeaf "TyCon",
+                                              mkNode [mkLeaf "name",
+                                                      mkLeaf $ show name]]
 
 showDataCon :: DataCon -> L.Lisp
 showDataCon d = let name = getName d

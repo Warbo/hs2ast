@@ -21,14 +21,14 @@ import           Var
 impureTests = testGroup "Monadic s-expression tests" [
               ]
 pureTests   = testGroup "Pure s-expression tests" [
-                  --testProperty "Ints convert nicely" intToSexpr
-                --, testProperty "Can show Vars"       canShowVars
+                  testProperty "Ints convert nicely" intToSexpr
+                , testProperty "Can show Vars"       canShowVars
                 ]
 
 intToSexpr :: Int -> Bool
 intToSexpr i = toSx i == Just (mkLeaf (show i))
 
--- canShowVars v = Prelude.length (showVar v) > 0
+canShowVars v = Prelude.length (show (showVar v)) > 0
 
 -- Simplified Sexpr builders; don't perform generic type-matching stuff
 sLeaf :: Data a => a -> L.Lisp
@@ -50,18 +50,18 @@ foldsx leaf node sx = case sx of
 anysx :: (String -> Bool) -> L.Lisp -> Bool
 anysx f = foldsx f or
 
--- instance Show Var where
---     show = showVar
---
--- instance Arbitrary Name where
---     arbitrary = do
---         n <- arbitrary
---         s <- arbitrary
---         return $ mkFCallName (mkUniqueGrimily n) s
---
--- instance Arbitrary Var where
---     arbitrary = do
---         n <- arbitrary
---         i <- arbitrary
---         let t = mkNumLitTy i
---         return (mkGlobalVar coVarDetails n t vanillaIdInfo)
+instance Show Var where
+  show = show . showVar
+
+instance Arbitrary Name where
+    arbitrary = do
+      n <- arbitrary
+      s <- arbitrary
+      return $ mkFCallName (mkUniqueGrimily n) s
+
+instance Arbitrary Var where
+    arbitrary = do
+        n <- arbitrary
+        i <- arbitrary
+        let t = mkNumLitTy i
+        return (mkGlobalVar coVarDetails n t vanillaIdInfo)
