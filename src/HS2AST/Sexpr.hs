@@ -24,28 +24,25 @@ import           TypeRep
 import           Unique
 import           Var
 
-
 mkLeaf :: String -> L.Lisp
 mkLeaf x = L.String (S.fromString x)
 
 mkNode :: [L.Lisp] -> L.Lisp
 mkNode = L.List
 
-convertBinding :: HsBindLR Name Name -> Maybe L.Lisp
+convertBinding :: HsBindLR Name Name -> L.Lisp
 convertBinding = toSexp
 
 -- | Convert Data instances to s-expressions
-toSexp :: Data a => a -> Maybe L.Lisp
+toSexp :: Data a => a -> L.Lisp
 toSexp x = let tail = gmapQ toSexp  x
-               head = toSx  x
-            in case head of
-                    Nothing -> Nothing
-                    Just y  -> Just (mkNode (y : catMaybes tail))
+               head = toSx x
+            in mkNode (head : tail)
 
-toSx :: Data a =>  a -> Maybe L.Lisp
-toSx = Just . strConstr
+toSx :: Data a =>  a -> L.Lisp
+toSx = strConstr
 
-simpleAst :: Data a => a -> Maybe L.Lisp
+simpleAst :: Data a => a -> L.Lisp
 simpleAst = toSexp
 
 strConstr :: Data a => a -> L.Lisp
