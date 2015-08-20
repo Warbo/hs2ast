@@ -75,21 +75,18 @@ showDataCon d = let name = getName d
                                   , mkNode[mkLeaf "pkg", mkLeaf p]]]
                     Nothing      -> mkNode [mkLeaf "DataCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
 
-
-
 showVar :: Var -> L.Lisp
 showVar v = let name     = getName v
                 mdpkg    = getModPkg (nameModule_maybe name)
-                nameNode = mkNode [mkLeaf "name",
-                                   mkLeaf $ getOccString name]
-            in case mdpkg of
-                Just (m, p) -> mkNode [mkLeaf "Var",
-                                       mkNode [nameNode,
-                                               mkNode [mkLeaf "mod",
-                                                       mkLeaf m],
-                                               mkNode [mkLeaf "pkg",
-                                                       mkLeaf p]]]
-                Nothing     -> mkNode [mkLeaf "Var", nameNode]
+                nameNode = tag "name" (getOccString name)
+            in mkNode [mkLeaf "Var",
+                       case mdpkg of
+                            Just (m, p) -> mkNode [nameNode,
+                                                   tag "mod" m,
+                                                   tag "pkg" p]
+                            Nothing     -> nameNode]
+
+tag t x = mkNode [mkLeaf t, mkLeaf x]
 
 getModPkg :: Maybe Module -> Maybe (String, String)
 getModPkg Nothing = Nothing

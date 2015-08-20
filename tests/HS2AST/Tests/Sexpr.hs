@@ -42,27 +42,23 @@ namesHaveMods = forAll (vector 100) haveMod
   where haveMod  []    = False
         haveMod (n:ns) = isJust (nameModule_maybe n) || haveMod ns
 
+varNamesShown :: [Var] -> Property
 varNamesShown vs = forAll (exprUsing vs) namesShown
-  where names        = map getName vs
-        getName      = S.fromString . getOccString . Var.varName
+  where names        = map getN vs
+        getN         = S.fromString . getOccString . getName
         namesShown x = all (\n -> contains "name" n (toSexp x)) names
 
-varModsShown vs = forAll (exprUsing vs) modsShown
-  where mods         = catMaybes (map getMod vs)
-        getMod       = fmap (S.fromString . show . moduleName) . nameModule_maybe . Var.varName
-        modsShown x  = all (\m -> contains "mod" m (toSexp x)) mods
+varCheckShown f s vs = forAll (exprUsing vs) bitsShown
+  where bits        = catMaybes (map getBit vs)
+        getBit      = fmap (S.fromString . show . f) . nameModule_maybe . getName
+        bitsShown x = all (\b -> contains s b (toSexp x)) bits
 
-varPkgsShown vs = forAll (exprUsing vs) pkgsShown
-  where pkgs         = catMaybes (map getPkg vs)
-        getPkg       = fmap (S.fromString . show . modulePackageKey) . nameModule_maybe . Var.varName
-        pkgsShown x  = all (\p -> contains "pkg" p (toSexp x)) pkgs
+varModsShown = varCheckShown moduleName       "mod"
+varPkgsShown = varCheckShown modulePackageKey "pkg"
 
 contains tag n x = case x of
   L.List [L.String tag, L.String m] -> n == m
   L.List xs                         -> or (map (contains tag n) xs)
   _                                 -> False
-
-
-tag t x = mkNode [mkLeaf t, mkLeaf x]
 
 noDodgyChars = "\x1f\x8b"
