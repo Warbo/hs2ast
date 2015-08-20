@@ -67,7 +67,7 @@ instance Show a => Show (Sexpr a) where
 -- Helpful orphan instances
 
 instance Show Name where
-  show n = let n' = occNameString . nameOccName $ n
+  show n = let n' = getOccString n
             in case nameModule_maybe n of
                     Just m  -> concat [
                                  show (modulePackageKey m),

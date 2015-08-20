@@ -44,7 +44,7 @@ namesHaveMods = forAll (vector 100) haveMod
 
 varNamesShown vs = forAll (exprUsing vs) namesShown
   where names        = map getName vs
-        getName      = S.fromString . show . Var.varName
+        getName      = S.fromString . getOccString . Var.varName
         namesShown x = all (\n -> contains "name" n (toSexp x)) names
 
 varModsShown vs = forAll (exprUsing vs) modsShown

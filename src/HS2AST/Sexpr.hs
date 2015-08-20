@@ -81,7 +81,7 @@ showVar :: Var -> L.Lisp
 showVar v = let name     = getName v
                 mdpkg    = getModPkg (nameModule_maybe name)
                 nameNode = mkNode [mkLeaf "name",
-                                   mkLeaf $ show name]
+                                   mkLeaf $ getOccString name]
             in case mdpkg of
                 Just (m, p) -> mkNode [mkLeaf "Var",
                                        mkNode [nameNode,
