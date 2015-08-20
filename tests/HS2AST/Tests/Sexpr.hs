@@ -30,6 +30,7 @@ pureTests   = testGroup "Pure s-expression tests" [
   , testProperty "Some generated Names have Modules" namesHaveMods
   , testProperty "Var names appear in Sexprs"        varNamesShown
   , testProperty "Var modules appear in Sexprs"      varModsShown
+  , testProperty "Var packages appear in Sexprs"     varPkgsShown
   ]
 
 intToSexpr :: Int -> Bool
@@ -56,6 +57,15 @@ varModsShown vs = forAll (exprUsing vs) modsShown
         modsShown x  = all (toSexp x `contains`) mods
         contains x n = case x of
           L.List [L.String "mod", L.String m] -> n == m
+          L.List xs                           -> or (map (`contains` n) xs)
+          _                                   -> False
+
+varPkgsShown vs = forAll (exprUsing vs) modsShown
+  where mods         = catMaybes (map getMod vs)
+        getMod       = fmap (S.fromString . show . modulePackageKey) . nameModule_maybe . Var.varName
+        modsShown x  = all (toSexp x `contains`) mods
+        contains x n = case x of
+          L.List [L.String "pkg", L.String m] -> n == m
           L.List xs                           -> or (map (`contains` n) xs)
           _                                   -> False
 
