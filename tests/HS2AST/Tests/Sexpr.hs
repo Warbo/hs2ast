@@ -28,8 +28,8 @@ pureTests   = testGroup "Pure s-expression tests" [
     testProperty "Ints convert to Sexprs"            intToSexpr
   , testProperty "Can show Vars"                     canShowVars
   , testProperty "Some generated Names have Modules" namesHaveMods
-  , testProperty "Var names appear in Sexprs"        namesAreShown
-  , testProperty "Var modules appear in Sexprs"      modsAreShown
+  , testProperty "Var names appear in Sexprs"        varNamesShown
+  , testProperty "Var modules appear in Sexprs"      varModsShown
   ]
 
 intToSexpr :: Int -> Bool
@@ -41,8 +41,7 @@ namesHaveMods = forAll (vector 100) haveMod
   where haveMod  []    = False
         haveMod (n:ns) = isJust (nameModule_maybe n) || haveMod ns
 
-namesAreShown :: [Var] -> Property
-namesAreShown vs = forAll (exprUsing vs) namesShown
+varNamesShown vs = forAll (exprUsing vs) namesShown
   where names        = map getName vs
         getName      = S.fromString . show . Var.varName
         namesShown x = all (toSexp x `contains`) names
@@ -51,10 +50,9 @@ namesAreShown vs = forAll (exprUsing vs) namesShown
           L.List xs                            -> or (map (`contains` n) xs)
           _                                    -> False
 
-modsAreShown vs = forAll (exprUsing vs) modsShown
+varModsShown vs = forAll (exprUsing vs) modsShown
   where mods         = catMaybes (map getMod vs)
         getMod       = fmap (S.fromString . show . moduleName) . nameModule_maybe . Var.varName
-        mkMod        = tag "mod"
         modsShown x  = all (toSexp x `contains`) mods
         contains x n = case x of
           L.List [L.String "mod", L.String m] -> n == m

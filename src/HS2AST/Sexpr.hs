@@ -60,7 +60,7 @@ showTycon t = let name  = T.tyConName t
                                               mkNode [mkNode [mkLeaf "name",
                                                               mkLeaf $ show name],
                                                       mkNode [mkLeaf "mod",
-                                                              mkLeaf "foo"{-m-}],
+                                                              mkLeaf m],
                                                       mkNode [mkLeaf "pkg",
                                                               mkLeaf p]]]
                        Nothing     -> mkNode [mkLeaf "TyCon",
@@ -78,8 +78,8 @@ showDataCon d = let name = getName d
 
 
 showVar :: Var -> L.Lisp
-showVar v = let name  = getName v
-                mdpkg = getModPkg (nameModule_maybe name)
+showVar v = let name     = getName v
+                mdpkg    = getModPkg (nameModule_maybe name)
                 nameNode = mkNode [mkLeaf "name",
                                    mkLeaf $ show name]
             in case mdpkg of
