@@ -58,7 +58,7 @@ showTycon t = let name  = T.tyConName t
                in case mdpkg of
                        Just (m, p) -> mkNode [mkLeaf "TyCon",
                                               mkNode [mkNode [mkLeaf "name",
-                                                              mkLeaf $ show name],
+                                                              mkLeaf $ getOccString name],
                                                       mkNode [mkLeaf "mod",
                                                               mkLeaf m],
                                                       mkNode [mkLeaf "pkg",
@@ -71,7 +71,7 @@ showDataCon :: DataCon -> L.Lisp
 showDataCon d = let name = getName d
                     mdpkg = getModPkg (nameModule_maybe name)
                 in case mdpkg of
-                    Just(m, p)   -> mkNode [mkLeaf "DataCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
+                    Just(m, p)   -> mkNode [mkLeaf "DataCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ getOccString name], mkNode [mkLeaf "mod", mkLeaf m]
                                   , mkNode[mkLeaf "pkg", mkLeaf p]]]
                     Nothing      -> mkNode [mkLeaf "DataCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
 

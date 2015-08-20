@@ -10,8 +10,8 @@ import           ConLike
 import           Control.Applicative
 import           CoreSyn
 import qualified Data.AttoLisp              as L
-import           DataCon
-import           Data.Data
+import           DataCon   hiding (IntRep, FloatRep)
+import           Data.Data hiding (IntRep, FloatRep)
 import           Data.DeriveTH
 import qualified Data.Set as Set
 import           FastString
@@ -42,29 +42,29 @@ instance Show Var where
 instance (Data a) => Show (Expr a) where
   show = show . toSexp
 
+instance Show DataCon where
+  show = show . showDataCon
+
+instance Show TyCon.TyCon where
+  show = show . showTycon
+
 -- Arbitrary instances
+
+-- Use this if you're making a recursive generator, so it's easier to spot
+-- potential problems
+recurse :: (Arbitrary a) => Gen a
+recurse = arbitrary
 
 instance Arbitrary L.Lisp where
   arbitrary = let f 0 = mkLeaf <$> arbitrary
                   f n = mkNode <$> divideBetween f n
               in choose (0, 500) >>= f
 
--- Enable more as necessary
+-- Enable more constructors as necessary
 instance (Arbitrary a) => Arbitrary (Expr a) where
-  arbitrary = let a :: (Arbitrary a) => Gen a
-                  a = arbitrary
-               in oneof [
-                      Var      <$> a
-                    --, Lit      <$> a
-                    , App      <$> a <*> a
-                    , Lam      <$> a <*> a
-                    --, Let      <$> a <*> a
-                    --, Case     <$> a <*> a <*> a <*> a
-                    --, Cast     <$> a <*> a
-                    --, Tick     <$> a <*> a
-                    --, Type     <$> a
-                    --, Coercion <$> a
-                    ]
+  arbitrary = frequency [(10, Var <$> arbitrary),
+                         (1,  App <$> recurse   <*> arbitrary),
+                         (1,  Lam <$> arbitrary <*> recurse)]
 
 -- These cannot be derived
 
@@ -127,18 +127,22 @@ instance Arbitrary DataCon where
                         <*> arbitrary
 
 instance Arbitrary TyCon.TyCon where
-  arbitrary = oneof [mkAlgTyCon <$> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                                <*> arbitrary
-                    ]
+  arbitrary = oneof [
+    mkAlgTyCon  <$> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> frequency [(1, recurse), (10, return Nothing)],
+    mkPrimTyCon <$> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary]
 
 instance Arbitrary Class where
   arbitrary = mkClass <$> arbitrary
@@ -159,8 +163,12 @@ instance Arbitrary Coercion where
 instance Arbitrary PatSyn where
   arbitrary = undefined
 
+-- If you want to improve this, make sure your generated types make sense, ie.
+-- that applications match up (eg. applying * -> * to *), etc. (GHC panics
+-- otherwise). Try to keep it fast too, as they're used in a LOT of places!
 instance Arbitrary Type where
-  arbitrary = undefined
+  arbitrary = oneof [mkNumLitTy <$> arbitrary,
+                     mkStrLitTy <$> arbitrary]
 
 instance (Arbitrary a) => Arbitrary (UniqSM a) where
   arbitrary = undefined
@@ -181,10 +189,24 @@ instance CoArbitrary Unique where
 
 -- More-specific generators
 
-exprUsing :: [Var] -> Gen (Expr Var)
-exprUsing []     = arbitrary
-exprUsing (v:vs) = do x <- exprUsing vs
-                      return (App (Var v) x)
+exprUsingVars :: [Var] -> Gen (Expr Var)
+exprUsingVars []     = arbitrary
+exprUsingVars (v:vs) = do x <- exprUsingVars vs
+                          return (App (Var v) x)
+
+exprUsingDCs :: [DataCon] -> Gen (Expr Var)
+exprUsingDCs ds = Case <$> arbitrary <*> arbitrary <*> arbitrary <*> altOf ds
+  where altOf []     = return []
+        altOf (d:ds) = do xs <- altOf ds
+                          bs <- arbitrary
+                          e  <- arbitrary
+                          return ((DataAlt d, bs, e):xs)
+
+exprUsingTCs :: [TyCon.TyCon] -> Gen (Expr Var)
+exprUsingTCs ts = Type <$> typeUsing ts
+  where typeUsing  []    = arbitrary
+        typeUsing (t:ts) = do x <- typeUsing ts
+                              return (Type.mkTyConApp t [x])
 
 -- Generator combinators
 
@@ -225,3 +247,5 @@ derive makeArbitrary ''SrcSpan
 derive makeArbitrary ''BuiltInSyntax
 derive makeArbitrary ''TyThing
 derive makeArbitrary ''Module
+derive makeArbitrary ''PrimRep
+derive makeArbitrary ''PrimElemRep
