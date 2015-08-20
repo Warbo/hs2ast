@@ -52,39 +52,25 @@ strConstr = let def = mkLeaf . show . toConstr
                            showDataCon)
                      showTycon
 
+showNamed :: NamedThing a => String -> a -> L.Lisp
+showNamed s t = let name    = getName t
+                    mdpkg   = getModPkg (nameModule_maybe name)
+                    nameTag = tag "name" (getOccString name)
+                 in mkNode [mkLeaf s,
+                            case mdpkg of
+                                 Just (m, p) -> mkNode [nameTag,
+                                                        tag "mod" m,
+                                                        tag "pkg" p]
+                                 Nothing     -> nameTag]
+
 showTycon :: T.TyCon -> L.Lisp
-showTycon t = let name  = T.tyConName t
-                  mdpkg = getModPkg (nameModule_maybe name)
-               in case mdpkg of
-                       Just (m, p) -> mkNode [mkLeaf "TyCon",
-                                              mkNode [mkNode [mkLeaf "name",
-                                                              mkLeaf $ getOccString name],
-                                                      mkNode [mkLeaf "mod",
-                                                              mkLeaf m],
-                                                      mkNode [mkLeaf "pkg",
-                                                              mkLeaf p]]]
-                       Nothing     -> mkNode [mkLeaf "TyCon",
-                                              mkNode [mkLeaf "name",
-                                                      mkLeaf $ show name]]
+showTycon = showNamed "TyCon"
 
 showDataCon :: DataCon -> L.Lisp
-showDataCon d = let name = getName d
-                    mdpkg = getModPkg (nameModule_maybe name)
-                in case mdpkg of
-                    Just(m, p)   -> mkNode [mkLeaf "DataCon" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ getOccString name], mkNode [mkLeaf "mod", mkLeaf m]
-                                  , mkNode[mkLeaf "pkg", mkLeaf p]]]
-                    Nothing      -> mkNode [mkLeaf "DataCon" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
+showDataCon = showNamed "DataCon"
 
 showVar :: Var -> L.Lisp
-showVar v = let name     = getName v
-                mdpkg    = getModPkg (nameModule_maybe name)
-                nameNode = tag "name" (getOccString name)
-            in mkNode [mkLeaf "Var",
-                       case mdpkg of
-                            Just (m, p) -> mkNode [nameNode,
-                                                   tag "mod" m,
-                                                   tag "pkg" p]
-                            Nothing     -> nameNode]
+showVar = showNamed "Var"
 
 tag t x = mkNode [mkLeaf t, mkLeaf x]
 
