@@ -5,7 +5,7 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, aeson, ArbitraryHaskell, atto-lisp
-      , attoparsec, base, bytestring, containers, directory, ghc
+      , attoparsec, base, bytestring, containers, derive, directory, ghc
       , MissingH, process, QuickCheck, stdenv, stringable, syb, tasty
       , tasty-quickcheck, temporary, transformers, uniplate
       }:
@@ -18,7 +18,7 @@ let
           MissingH process stringable syb temporary transformers uniplate
         ];
         testDepends = [
-          aeson ArbitraryHaskell atto-lisp attoparsec base containers
+          aeson ArbitraryHaskell atto-lisp attoparsec base containers derive
           directory ghc process QuickCheck stringable tasty tasty-quickcheck
         ];
         homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
