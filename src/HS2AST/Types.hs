@@ -65,11 +65,18 @@ instance Show a => Show (Sexpr a) where
   show (Node xs) = "(" ++ unwords (map show xs) ++ ")"
 
 -- Helpful orphan instances
---instance ToJSON L.Lisp where
---  toJSON x = String ()
 
 instance Show Name where
-  show = occNameString . nameOccName
+  show n = let n' = occNameString . nameOccName $ n
+            in case nameModule_maybe n of
+                    Just m  -> concat [
+                                 show (modulePackageKey m),
+                                 ":",
+                                 show (moduleName m),
+                                 ".",
+                                 n']
+                    Nothing -> n'
+
 
 instance Show ModuleName where
   show = moduleNameString

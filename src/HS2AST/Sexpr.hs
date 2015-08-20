@@ -47,8 +47,7 @@ simpleAst = toSexp
 
 strConstr :: Data a => a -> L.Lisp
 strConstr = let def = mkLeaf . show . toConstr
-             in extQ (extQ (extQ (extQ def
-                                       showBS)
+             in extQ (extQ (extQ (extQ def showBS)
                                  showVar)
                            showDataCon)
                      showTycon
@@ -61,7 +60,7 @@ showTycon t = let name  = T.tyConName t
                                               mkNode [mkNode [mkLeaf "name",
                                                               mkLeaf $ show name],
                                                       mkNode [mkLeaf "mod",
-                                                              mkLeaf m],
+                                                              mkLeaf "foo"{-m-}],
                                                       mkNode [mkLeaf "pkg",
                                                               mkLeaf p]]]
                        Nothing     -> mkNode [mkLeaf "TyCon",
@@ -79,14 +78,18 @@ showDataCon d = let name = getName d
 
 
 showVar :: Var -> L.Lisp
-showVar v = let name = getName v
+showVar v = let name  = getName v
                 mdpkg = getModPkg (nameModule_maybe name)
+                nameNode = mkNode [mkLeaf "name",
+                                   mkLeaf $ show name]
             in case mdpkg of
-                Just(m, p)   -> mkNode [mkLeaf "Var" ,mkNode[mkNode [mkLeaf "name", mkLeaf $ show name], mkNode [mkLeaf "mod", mkLeaf m]
-                              , mkNode[mkLeaf "pkg", mkLeaf p]]]
-                Nothing      -> mkNode [mkLeaf "Var" ,mkNode [mkLeaf "name", mkLeaf $ show name]]
-
-
+                Just (m, p) -> mkNode [mkLeaf "Var",
+                                       mkNode [nameNode,
+                                               mkNode [mkLeaf "mod",
+                                                       mkLeaf m],
+                                               mkNode [mkLeaf "pkg",
+                                                       mkLeaf p]]]
+                Nothing     -> mkNode [mkLeaf "Var", nameNode]
 
 getModPkg :: Maybe Module -> Maybe (String, String)
 getModPkg Nothing = Nothing
