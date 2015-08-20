@@ -45,29 +45,23 @@ namesHaveMods = forAll (vector 100) haveMod
 varNamesShown vs = forAll (exprUsing vs) namesShown
   where names        = map getName vs
         getName      = S.fromString . show . Var.varName
-        namesShown x = all (toSexp x `contains`) names
-        contains x n = case x of
-          L.List [L.String "name", L.String m] -> n == m
-          L.List xs                            -> or (map (`contains` n) xs)
-          _                                    -> False
+        namesShown x = all (\n -> contains "name" n (toSexp x)) names
 
 varModsShown vs = forAll (exprUsing vs) modsShown
   where mods         = catMaybes (map getMod vs)
         getMod       = fmap (S.fromString . show . moduleName) . nameModule_maybe . Var.varName
-        modsShown x  = all (toSexp x `contains`) mods
-        contains x n = case x of
-          L.List [L.String "mod", L.String m] -> n == m
-          L.List xs                           -> or (map (`contains` n) xs)
-          _                                   -> False
+        modsShown x  = all (\m -> contains "mod" m (toSexp x)) mods
 
-varPkgsShown vs = forAll (exprUsing vs) modsShown
-  where mods         = catMaybes (map getMod vs)
-        getMod       = fmap (S.fromString . show . modulePackageKey) . nameModule_maybe . Var.varName
-        modsShown x  = all (toSexp x `contains`) mods
-        contains x n = case x of
-          L.List [L.String "pkg", L.String m] -> n == m
-          L.List xs                           -> or (map (`contains` n) xs)
-          _                                   -> False
+varPkgsShown vs = forAll (exprUsing vs) pkgsShown
+  where pkgs         = catMaybes (map getPkg vs)
+        getPkg       = fmap (S.fromString . show . modulePackageKey) . nameModule_maybe . Var.varName
+        pkgsShown x  = all (\p -> contains "pkg" p (toSexp x)) pkgs
+
+contains tag n x = case x of
+  L.List [L.String tag, L.String m] -> n == m
+  L.List xs                         -> or (map (contains tag n) xs)
+  _                                 -> False
+
 
 tag t x = mkNode [mkLeaf t, mkLeaf x]
 
