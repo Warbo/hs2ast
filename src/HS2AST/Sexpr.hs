@@ -30,9 +30,6 @@ mkLeaf x = L.String (S.fromString x)
 mkNode :: [L.Lisp] -> L.Lisp
 mkNode = L.List
 
-convertBinding :: HsBindLR Name Name -> L.Lisp
-convertBinding = toSexp
-
 -- | Convert Data instances to s-expressions
 toSexp :: Data a => a -> L.Lisp
 toSexp x = let tail = gmapQ toSexp  x
@@ -41,9 +38,6 @@ toSexp x = let tail = gmapQ toSexp  x
 
 toSx :: Data a =>  a -> L.Lisp
 toSx = strConstr
-
-simpleAst :: Data a => a -> L.Lisp
-simpleAst = toSexp
 
 strConstr :: Data a => a -> L.Lisp
 strConstr = let def = mkLeaf . show . toConstr
@@ -77,6 +71,10 @@ showVar :: Var -> L.Lisp
 showVar = showNamed "Var"
 
 tag t x = mkNode [mkLeaf t, mkLeaf x]
+
+contains x           y | x == y = True
+contains (L.List xs) y          = any (`contains` y) xs
+contains _           _          = False
 
 showBS :: ByteString -> L.Lisp
 showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]

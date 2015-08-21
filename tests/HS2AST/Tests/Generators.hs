@@ -56,9 +56,10 @@ recurse :: (Arbitrary a) => Gen a
 recurse = arbitrary
 
 instance Arbitrary L.Lisp where
-  arbitrary = let f 0 = mkLeaf <$> arbitrary
-                  f n = mkNode <$> divideBetween f n
-              in choose (0, 500) >>= f
+  arbitrary = choose (0, 0) >>= genSizedLisp
+
+genSizedLisp 0 = mkLeaf <$> arbitrary
+genSizedLisp n = mkNode <$> divideBetween genSizedLisp (n - 1)
 
 -- Enable more constructors as necessary
 instance (Arbitrary a) => Arbitrary (Expr a) where
