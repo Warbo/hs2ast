@@ -53,15 +53,19 @@ strConstr = let def = mkLeaf . show . toConstr
                      showTycon
 
 showNamed :: NamedThing a => String -> a -> L.Lisp
-showNamed s t = let name    = getName t
-                    mdpkg   = getModPkg (nameModule_maybe name)
-                    nameTag = tag "name" (getOccString name)
+showNamed s t = let name     = getName t
+                    nameTag  = tag "name" (getOccString name)
+                    tagMod m = mkNode [nameTag,
+                                       tag "mod" (modNameS m),
+                                       tag "pkg" (modPkgS  m)]
                  in mkNode [mkLeaf s,
-                            case mdpkg of
-                                 Just (m, p) -> mkNode [nameTag,
-                                                        tag "mod" m,
-                                                        tag "pkg" p]
-                                 Nothing     -> nameTag]
+                            maybe nameTag tagMod (nameModule_maybe name)]
+
+modNameS :: Module -> String
+modNameS = moduleNameString . moduleName
+
+modPkgS :: Module -> String
+modPkgS = packageKeyString . modulePackageKey
 
 showTycon :: T.TyCon -> L.Lisp
 showTycon = showNamed "TyCon"
@@ -73,10 +77,6 @@ showVar :: Var -> L.Lisp
 showVar = showNamed "Var"
 
 tag t x = mkNode [mkLeaf t, mkLeaf x]
-
-getModPkg :: Maybe Module -> Maybe (String, String)
-getModPkg Nothing = Nothing
-getModPkg (Just m) = Just (moduleNameString (moduleName m), packageKeyString  (modulePackageKey m))
 
 showBS :: ByteString -> L.Lisp
 showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]
