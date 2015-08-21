@@ -19,7 +19,8 @@ import           ForeignCall
 import           HS2AST.Sexpr
 import           HS2AST.Types
 import           IdInfo
-import MkId
+import           Literal
+import           MkId
 import           Module
 import           Name
 import           OccName
@@ -64,10 +65,17 @@ genSizedLisp n = mkNode <$> divideBetween genSizedLisp (n - 1)
 -- Enable more constructors as necessary
 instance (Arbitrary a) => Arbitrary (Expr a) where
   arbitrary = frequency [(10, Var <$> arbitrary),
+                         (10, Lit <$> arbitrary),
                          (1,  App <$> recurse   <*> arbitrary),
                          (1,  Lam <$> arbitrary <*> recurse)]
 
 -- These cannot be derived
+
+instance Arbitrary Literal where
+  arbitrary = oneof [mkMachString <$> arbitrary,
+                     mkMachChar   <$> arbitrary,
+                     mkMachDouble <$> arbitrary,
+                     mkMachInt64  <$> arbitrary]
 
 instance Arbitrary Var where
     arbitrary = do

@@ -7,6 +7,7 @@ import           CoAxiom                     as C
 import qualified Data.AttoLisp               as L
 import           Data.ByteString             (ByteString)
 import           Data.ByteString.Char8       (unpack)
+import           Data.Char
 import           Data.Data
 import           Data.Generics
 import           Data.Generics.Uniplate.Data
@@ -25,7 +26,7 @@ import           Unique
 import           Var
 
 mkLeaf :: String -> L.Lisp
-mkLeaf x = L.String (S.fromString x)
+mkLeaf x = L.String (S.fromString . filterLisp $ x)
 
 mkNode :: [L.Lisp] -> L.Lisp
 mkNode = L.List
@@ -78,3 +79,6 @@ contains _           _          = False
 
 showBS :: ByteString -> L.Lisp
 showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]
+
+filterLisp :: String -> String
+filterLisp = filter isPrint

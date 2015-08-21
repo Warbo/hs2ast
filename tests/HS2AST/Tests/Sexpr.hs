@@ -25,23 +25,24 @@ import           Unique
 import           Var
 
 tests = testGroup "S-expression tests" [
-    testProperty "Ints convert to Sexprs"            intSexprOk
-  , testProperty "Vars convert to Sexprs"            varSexprOk
-  , testProperty "DataCons convert to Sexprs"        dcSexprOk
-  , testProperty "TyCons convert to Sexprs"          tcSexprOk
-  , testProperty "Arbitrary Names can have Modules"  namesHaveMods
-  , testProperty "Var names appear in Sexprs"        varNamesShown
-  , testProperty "Var modules appear in Sexprs"      varModsShown
-  , testProperty "Var packages appear in Sexprs"     varPkgsShown
-  , testProperty "DataCon names appear in Sexprs"    dcNamesShown
-  , testProperty "DataCon modules appear in Sexprs"  dcModsShown
-  , testProperty "DataCon packages appear in Sexprs" dcPkgsShown
-  , testProperty "TyCon names appear in Sexprs"      tcNamesShown
-  , testProperty "TyCon modules appear in Sexprs"    tcModsShown
-  , testProperty "TyCon packages appear in Sexprs"   tcPkgsShown
-  , testProperty "Recursive generators are bounded" divideBetweenBounded
+    testProperty "Ints convert to Sexprs"             intSexprOk
+  , testProperty "Vars convert to Sexprs"             varSexprOk
+  , testProperty "DataCons convert to Sexprs"         dcSexprOk
+  , testProperty "TyCons convert to Sexprs"           tcSexprOk
+  , testProperty "Arbitrary Names can have Modules"   namesHaveMods
+  , testProperty "Var names appear in Sexprs"         varNamesShown
+  , testProperty "Var modules appear in Sexprs"       varModsShown
+  , testProperty "Var packages appear in Sexprs"      varPkgsShown
+  , testProperty "DataCon names appear in Sexprs"     dcNamesShown
+  , testProperty "DataCon modules appear in Sexprs"   dcModsShown
+  , testProperty "DataCon packages appear in Sexprs"  dcPkgsShown
+  , testProperty "TyCon names appear in Sexprs"       tcNamesShown
+  , testProperty "TyCon modules appear in Sexprs"     tcModsShown
+  , testProperty "TyCon packages appear in Sexprs"    tcPkgsShown
+  , testProperty "Recursive generators are bounded"   divideBetweenBounded
   , testProperty "Generated Sexprs have bounded size" lispLeavesBounded
-  , testProperty "Can parse pretty-printed Sexprs"   parseShowInverse
+  , testProperty "Can parse pretty-printed Sexprs"    parseShowInverseSexpr
+  , testProperty "Can parse pretty-printed Core"      parseShowInverseSexpr
   ]
 
 -- Make sure we have no GHC panics, undefined values, etc. in our s-expressions
@@ -107,7 +108,7 @@ checkNameModPkg gen = map (checkShown gen) [(map     getOccString,     "name"),
 [ dcNamesShown,  dcModsShown,  dcPkgsShown] = checkNameModPkg exprUsingDCs
 [ tcNamesShown,  tcModsShown,  tcPkgsShown] = checkNameModPkg exprUsingTCs
 
--- Check we can parse pretty-printed s-expressions
+-- Check the size of generated values (to avoid filling memory)
 
 divideBetweenBounded (NonNegative n) = forAll (divideBetween return n) sumToN
   where sumToN xs = sum xs == n
@@ -117,9 +118,17 @@ lispLeavesBounded x = countLeaves x <= 500
 countLeaves (L.List xs) = sum (map countLeaves xs)
 countLeaves _           = 1
 
-parseShowInverse x = let bs = S.fromString . S.toString $ L.encode x
-                      in case AB.eitherResult (AB.parse L.lisp bs) of
-                          Left err -> error (show err)
-                          Right y  -> x == y
+-- Check we can parse pretty-printed s-expressions
 
---noDodgyChars = "\x1f\x8b"
+parseShowInverse :: (a -> L.Lisp) -> a -> Bool
+parseShowInverse f x = let sexp = f x
+                           bs   = S.fromString . S.toString $ L.encode sexp
+                        in case AB.eitherResult (AB.parse L.lisp bs) of
+                                Left err -> error (show err)
+                                Right y  -> sexp == y
+
+
+parseShowInverseSexpr = parseShowInverse id
+
+parseShowInverseExpr :: Expr Var -> Bool
+parseShowInverseExpr = parseShowInverse toSexp
