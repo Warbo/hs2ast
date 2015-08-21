@@ -37,11 +37,11 @@ Library
   hs-source-dirs:      src
   default-language:    Haskell2010
 
-test-suite pure
+test-suite tests
   default-language:    Haskell2010
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests
-  main-is:             Pure.hs
+  main-is:             Main.hs
   build-depends:       base >= 4.7
                      , QuickCheck
                      , tasty >= 0.7
@@ -49,26 +49,6 @@ test-suite pure
                      , ArbitraryHaskell
                      , HS2AST
                      , aeson
-                     , containers
-                     , directory
-                     , process
-                     , atto-lisp
-                     , attoparsec
-                     , stringable
-                     , ghc
-                     , derive
-test-suite impure
-  default-language:    Haskell2010
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      tests
-  main-is:             Impure.hs
-  build-depends:       base >= 4.7
-                     , QuickCheck
-                     , tasty >= 0.7
-                     , tasty-quickcheck
-                     , HS2AST
-                     , aeson
-                     , ArbitraryHaskell
                      , containers
                      , directory
                      , process

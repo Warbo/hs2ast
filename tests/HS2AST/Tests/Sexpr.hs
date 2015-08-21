@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module HS2AST.Tests.Sexpr (impureTests, pureTests) where
+module HS2AST.Tests.Sexpr where
 
 import           Control.Applicative
 import           CoreSyn
@@ -22,9 +22,7 @@ import           Type
 import           Unique
 import           Var
 
-impureTests = testGroup "Monadic s-expression tests" [
-              ]
-pureTests   = testGroup "Pure s-expression tests" [
+tests = testGroup "S-expression tests" [
     testProperty "Ints convert to Sexprs"            intToSexpr
   , testProperty "Can show Vars"                     canShowVars
   , testProperty "Some generated Names have Modules" namesHaveMods
