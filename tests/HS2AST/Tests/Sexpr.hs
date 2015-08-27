@@ -101,7 +101,7 @@ checkNameModPkg :: (NamedThing a, Data a)  =>
 checkNameModPkg gen = map (checkShown gen) [(map     getOccString,     "name"),
                                             (ifThere moduleName,       "mod"),
                                             (ifThere modulePackageKey, "pkg")]
-  where ifThere f = map (show . f) . catMaybes . map (nameModule_maybe)
+  where ifThere f = map (show . f) . mapMaybe nameModule_maybe
 
 -- | Specialise the namedThings to be Vars, DataCons and TyCons
 [varNamesShown, varModsShown, varPkgsShown] = checkNameModPkg exprUsingVars

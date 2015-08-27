@@ -1,5 +1,4 @@
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE FlexibleInstances, RankNTypes #-}
 
 module HS2AST.Sexpr where
 
@@ -10,7 +9,7 @@ import           Data.ByteString.Char8       (unpack)
 import           Data.Char
 import           Data.Data
 import           Data.Generics
-import           Data.Generics.Uniplate.Data
+--import           Data.Generics.Uniplate.Data
 import           Data.Maybe
 import qualified Data.Stringable             as S
 import           DataCon

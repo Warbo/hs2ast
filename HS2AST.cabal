@@ -19,15 +19,15 @@ cabal-version:       >=1.10
 Library
   build-depends:       base >=4.7
                      , ghc
-                     , uniplate
-                     , transformers
+                     --, uniplate
+                     --, transformers
                      , syb
-                     , directory
+                     --, directory
                      , bytestring
-                     , containers
-                     , temporary
-                     , process
-                     , MissingH
+                     --, containers
+                     --, temporary
+                     --, process
+                     --, MissingH
                      , aeson
                      , stringable
                      , atto-lisp
@@ -46,12 +46,12 @@ test-suite tests
                      , QuickCheck
                      , tasty >= 0.7
                      , tasty-quickcheck
-                     , ArbitraryHaskell
+                     --, ArbitraryHaskell
                      , HS2AST
                      , aeson
-                     , containers
-                     , directory
-                     , process
+                     --, containers
+                     --, directory
+                     --, process
                      , atto-lisp
                      , attoparsec
                      , stringable

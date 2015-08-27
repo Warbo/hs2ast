@@ -13,7 +13,7 @@ import qualified Data.AttoLisp              as L
 import           DataCon   hiding (IntRep, FloatRep)
 import           Data.Data hiding (IntRep, FloatRep)
 import           Data.DeriveTH
-import qualified Data.Set as Set
+--import qualified Data.Set as Set
 import           FastString
 import           ForeignCall
 import           HS2AST.Sexpr
@@ -26,7 +26,7 @@ import           Name
 import           OccName
 import           PatSyn
 import           SrcLoc
-import           System.Directory
+--import           System.Directory
 import           System.IO.Unsafe
 import           Test.QuickCheck
 import           TyCon
@@ -220,8 +220,8 @@ exprUsingTCs ts = Type <$> typeUsing ts
 -- Generator combinators
 
 -- | Remove duplicates from a list. Will only be empty when the input is.
-unique :: (Ord a) => [a] -> [a]
-unique = Set.toList . Set.fromList
+--unique :: (Ord a) => [a] -> [a]
+--unique = Set.toList . Set.fromList
 
 -- Helper functions
 

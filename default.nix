@@ -1,19 +1,17 @@
-{ mkDerivation, aeson, ArbitraryHaskell, atto-lisp, attoparsec
-, base, bytestring, containers, derive, directory, ghc, MissingH
-, process, QuickCheck, stdenv, stringable, syb, tasty
-, tasty-quickcheck, temporary, transformers, uniplate
+{ mkDerivation, aeson, atto-lisp, attoparsec, base, bytestring
+, derive, ghc, QuickCheck, stdenv, stringable, syb, tasty
+, tasty-quickcheck
 }:
 mkDerivation {
   pname = "HS2AST";
   version = "0.1.0.0";
   src = ./.;
   buildDepends = [
-    aeson atto-lisp attoparsec base bytestring containers directory ghc
-    MissingH process stringable syb temporary transformers uniplate
+    aeson atto-lisp attoparsec base bytestring ghc stringable syb
   ];
   testDepends = [
-    aeson ArbitraryHaskell atto-lisp attoparsec base containers derive
-    directory ghc process QuickCheck stringable tasty tasty-quickcheck
+    aeson atto-lisp attoparsec base derive ghc QuickCheck stringable
+    tasty tasty-quickcheck
   ];
   homepage = "http://chriswarbo.net/essays/repos/hs2ast.html";
   description = "Dump syntax trees of Haskell code";
