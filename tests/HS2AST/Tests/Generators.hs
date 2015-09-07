@@ -13,7 +13,6 @@ import qualified Data.AttoLisp              as L
 import           DataCon   hiding (IntRep, FloatRep)
 import           Data.Data hiding (IntRep, FloatRep)
 import           Data.DeriveTH
---import qualified Data.Set as Set
 import           FastString
 import           ForeignCall
 import           HS2AST.Sexpr
@@ -24,9 +23,9 @@ import           MkId
 import           Module
 import           Name
 import           OccName
+import           Packages
 import           PatSyn
 import           SrcLoc
---import           System.Directory
 import           System.IO.Unsafe
 import           Test.QuickCheck
 import           TyCon
@@ -37,17 +36,19 @@ import           Var
 
 -- Show instances, required by Arbitrary
 
+showDb k = Just (PackageName (mkFastString ("SHOW: " ++ packageKeyString k)))
+
 instance Show Var where
-  show = show . showVar
+  show = show . showVar showDb
 
 instance (Data a) => Show (Expr a) where
-  show = show . toSexp
+  show = show . toSexp showDb
 
 instance Show DataCon where
-  show = show . showDataCon
+  show = show . showDataCon showDb
 
 instance Show TyCon.TyCon where
-  show = show . showTycon
+  show = show . showTycon showDb
 
 -- Arbitrary instances
 

@@ -10,12 +10,14 @@ import           Data.Data (Data)
 import           Data.Maybe
 import           Data.Stringable            as S
 import           Debug.Trace
+import           FastString
 import           HS2AST.Sexpr
 import           HS2AST.Tests.Generators
 import           HS2AST.Types
 import           IdInfo
 import           Module
 import           Name
+import           Packages
 import           Test.QuickCheck.Monadic
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
@@ -39,6 +41,7 @@ tests = testGroup "S-expression tests" [
   , testProperty "TyCon names appear in Sexprs"       tcNamesShown
   , testProperty "TyCon modules appear in Sexprs"     tcModsShown
   , testProperty "TyCon packages appear in Sexprs"    tcPkgsShown
+  , testProperty "Package keys are looked up"         packageKeysLookedUp
   , testProperty "Recursive generators are bounded"   divideBetweenBounded
   , testProperty "Generated Sexprs have bounded size" lispLeavesBounded
   , testProperty "Can parse pretty-printed Sexprs"    parseShowInverseSexpr
@@ -48,7 +51,7 @@ tests = testGroup "S-expression tests" [
 -- Make sure we have no GHC panics, undefined values, etc. in our s-expressions
 
 forceSexpr :: Data a => a -> Bool
-forceSexpr x = Prelude.length (show (toSexp x)) > 0
+forceSexpr x = Prelude.length (show (toSexp dummyDb x)) > 0
 
 intSexprOk :: Int -> Bool
 intSexprOk = forceSexpr
@@ -90,7 +93,7 @@ checkShown :: (NamedThing a, Data a)       =>
               [a]                          ->
               Property
 checkShown gen (propsOf, t) namedThings = forAll (gen namedThings) propsShown
-  where propsShown expr = all (toSexp expr `contains`) props
+  where propsShown expr = all (toSexp dummyDb expr `contains`) props
         props           = map (tag t) (propsOf names)
         names           = map getName namedThings
 
@@ -98,15 +101,19 @@ checkShown gen (propsOf, t) namedThings = forAll (gen namedThings) propsShown
 checkNameModPkg :: (NamedThing a, Data a)  =>
                    ([a] -> Gen (Expr Var)) ->
                    [[a] -> Property]
-checkNameModPkg gen = map (checkShown gen) [(map     getOccString,     "name"),
-                                            (ifThere moduleName,       "mod"),
-                                            (ifThere modulePackageKey, "pkg")]
+checkNameModPkg gen = map (checkShown gen) [
+  (map     getOccString,                            "name"),
+  (ifThere moduleName,                              "mod"),
+  (ifThere (fromJust . dummyDb . modulePackageKey), "pkg")]
   where ifThere f = map (show . f) . mapMaybe nameModule_maybe
 
 -- | Specialise the namedThings to be Vars, DataCons and TyCons
 [varNamesShown, varModsShown, varPkgsShown] = checkNameModPkg exprUsingVars
 [ dcNamesShown,  dcModsShown,  dcPkgsShown] = checkNameModPkg exprUsingDCs
 [ tcNamesShown,  tcModsShown,  tcPkgsShown] = checkNameModPkg exprUsingTCs
+
+packageKeysLookedUp :: Module -> Bool
+packageKeysLookedUp m = modPkgS dummyDb m /= packageKeyString (modulePackageKey m)
 
 -- Check the size of generated values (to avoid filling memory)
 
@@ -131,4 +138,7 @@ parseShowInverse f x = let sexp = f x
 parseShowInverseSexpr = parseShowInverse id
 
 parseShowInverseExpr :: Expr Var -> Bool
-parseShowInverseExpr = parseShowInverse toSexp
+parseShowInverseExpr = parseShowInverse (toSexp dummyDb)
+
+dummyDb :: PackageDb
+dummyDb k = Just (PackageName (mkFastString ("DUMMY: " ++ packageKeyString k)))

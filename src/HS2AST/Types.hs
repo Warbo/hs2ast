@@ -9,6 +9,7 @@ import qualified Data.AttoLisp              as L
 import qualified Data.Attoparsec.ByteString as AB
 import           Data.Data
 import           Data.Stringable
+import           FastString
 import           Module
 import           Name
 import           Packages
@@ -77,9 +78,16 @@ instance Show Name where
                                  n']
                     Nothing -> n'
 
-
 instance Show ModuleName where
   show = moduleNameString
 
 instance Show PackageKey where
   show = packageKeyString
+
+instance Show Module where
+  show m = "MODULE: " ++ moduleNameString (moduleName m)
+
+instance Show PackageName where
+  show (PackageName fs) = unpackFS fs
+
+type PackageDb = PackageKey -> Maybe PackageName

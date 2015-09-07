@@ -9,7 +9,8 @@ import           Data.ByteString.Char8       (unpack)
 import           Data.Char
 import           Data.Data
 import           Data.Generics
---import           Data.Generics.Uniplate.Data
+import           Packages
+import           FastString
 import           Data.Maybe
 import qualified Data.Stringable             as S
 import           DataCon
@@ -31,44 +32,44 @@ mkNode :: [L.Lisp] -> L.Lisp
 mkNode = L.List
 
 -- | Convert Data instances to s-expressions
-toSexp :: Data a => a -> L.Lisp
-toSexp x = let tail = gmapQ toSexp  x
-               head = toSx x
-            in mkNode (head : tail)
+toSexp :: Data a => PackageDb -> a -> L.Lisp
+toSexp db x = let tail = gmapQ (toSexp db) x
+                  head = strConstr db x
+               in mkNode (head : tail)
 
-toSx :: Data a =>  a -> L.Lisp
-toSx = strConstr
+strConstr :: Data a => PackageDb -> a -> L.Lisp
+strConstr db = let def = mkLeaf . show . toConstr
+                in extQ (extQ (extQ (extQ
+                     def
+                     showBS)
+                     (showVar     db))
+                     (showDataCon db))
+                     (showTycon   db)
 
-strConstr :: Data a => a -> L.Lisp
-strConstr = let def = mkLeaf . show . toConstr
-             in extQ (extQ (extQ (extQ def showBS)
-                                 showVar)
-                           showDataCon)
-                     showTycon
-
-showNamed :: NamedThing a => String -> a -> L.Lisp
-showNamed s t = let name     = getName t
-                    nameTag  = tag "name" (getOccString name)
-                    tagMod m = mkNode [nameTag,
-                                       tag "mod" (modNameS m),
-                                       tag "pkg" (modPkgS  m)]
-                 in mkNode [mkLeaf s,
-                            maybe nameTag tagMod (nameModule_maybe name)]
+showNamed :: NamedThing a => PackageDb -> String -> a -> L.Lisp
+showNamed db s t = let name     = getName t
+                       nameTag  = tag "name" (getOccString name)
+                       tagMod m = mkNode [nameTag,
+                                          tag "mod" (modNameS m),
+                                          tag "pkg" (modPkgS  db m)]
+                    in mkNode [mkLeaf s,
+                               maybe nameTag tagMod (nameModule_maybe name)]
 
 modNameS :: Module -> String
 modNameS = moduleNameString . moduleName
 
-modPkgS :: Module -> String
-modPkgS = packageKeyString . modulePackageKey
+modPkgS :: PackageDb -> Module -> String
+modPkgS db m = case packageNameFromKey db . modulePackageKey $ m of
+  PackageName fs -> unpackFS fs
 
-showTycon :: T.TyCon -> L.Lisp
-showTycon = showNamed "TyCon"
+showTycon :: PackageDb -> T.TyCon -> L.Lisp
+showTycon db = showNamed db "TyCon"
 
-showDataCon :: DataCon -> L.Lisp
-showDataCon = showNamed "DataCon"
+showDataCon :: PackageDb -> DataCon -> L.Lisp
+showDataCon db = showNamed db "DataCon"
 
-showVar :: Var -> L.Lisp
-showVar = showNamed "Var"
+showVar :: PackageDb -> Var -> L.Lisp
+showVar db = showNamed db "Var"
 
 tag t x = mkNode [mkLeaf t, mkLeaf x]
 
@@ -81,3 +82,8 @@ showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]
 
 filterLisp :: String -> String
 filterLisp = filter isPrint
+
+packageNameFromKey :: PackageDb -> PackageKey -> PackageName
+packageNameFromKey db k = case db k of
+  Nothing -> error ("Couldn't find package " ++ packageKeyString k)
+  Just n  -> n
