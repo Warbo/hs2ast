@@ -6,10 +6,10 @@ mkDerivation {
   pname = "HS2AST";
   version = "0.1.0.0";
   src = ./.;
-  buildDepends = [
+  libraryHaskellDepends = [
     aeson atto-lisp attoparsec base bytestring ghc stringable syb
   ];
-  testDepends = [
+  testHaskellDepends = [
     aeson atto-lisp attoparsec base derive ghc QuickCheck stringable
     tasty tasty-quickcheck
   ];

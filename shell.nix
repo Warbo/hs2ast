@@ -1,4 +1,4 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc7102" }:
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
 
 let
 
@@ -12,10 +12,10 @@ let
         pname = "HS2AST";
         version = "0.1.0.0";
         src = ./.;
-        buildDepends = [
+        libraryHaskellDepends = [
           aeson atto-lisp attoparsec base bytestring ghc stringable syb
         ];
-        testDepends = [
+        testHaskellDepends = [
           aeson atto-lisp attoparsec base derive ghc QuickCheck stringable
           tasty tasty-quickcheck
         ];
@@ -24,7 +24,11 @@ let
         license = "GPL";
       };
 
-  drv = pkgs.haskell.packages.${compiler}.callPackage f {};
+  haskellPackages = if compiler == "default"
+                      then pkgs.haskellPackages
+                      else pkgs.haskell.packages.${compiler};
+
+  drv = haskellPackages.callPackage f {};
 
 in
 
