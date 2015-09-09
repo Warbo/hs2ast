@@ -63,12 +63,18 @@ instance Arbitrary L.Lisp where
 genSizedLisp 0 = mkLeaf <$> arbitrary
 genSizedLisp n = mkNode <$> divideBetween genSizedLisp (n - 1)
 
+-- Exponentially small lists
+expList g = do x <- arbitrary
+               if x then (:) <$> g <*> expList g
+                    else return []
+
 -- Enable more constructors as necessary
 instance (Arbitrary a) => Arbitrary (Expr a) where
-  arbitrary = frequency [(10, Var <$> arbitrary),
-                         (10, Lit <$> arbitrary),
-                         (1,  App <$> recurse   <*> arbitrary),
-                         (1,  Lam <$> arbitrary <*> recurse)]
+  arbitrary = sized f
+    where f x = frequency [(x+1, Var <$> arbitrary),
+                           (x+1, Lit <$> arbitrary),
+                           (1, App <$> f x <*> f x),
+                           (1, Lam <$> arbitrary <*> f x)]
 
 -- These cannot be derived
 
@@ -121,20 +127,21 @@ instance Arbitrary NameSpace where
                         tvName, srcDataName]
 
 instance Arbitrary DataCon where
-  arbitrary = mkDataCon <$> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
-                        <*> arbitrary
+  arbitrary = scale (`div` 2) $
+                mkDataCon <$> arbitrary
+                          <*> arbitrary
+                          <*> expList arbitrary
+                          <*> expList arbitrary
+                          <*> expList arbitrary
+                          <*> expList arbitrary
+                          <*> expList arbitrary
+                          <*> arbitrary
+                          <*> expList arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
 
 instance Arbitrary TyCon.TyCon where
   arbitrary = oneof [
@@ -204,25 +211,25 @@ exprUsingVars []     = arbitrary
 exprUsingVars (v:vs) = do x <- exprUsingVars vs
                           return (App (Var v) x)
 
+-- This is very expensive compared to Vars and TCs, so we pass along an
+-- exponentially-decreasing "size" parameter
 exprUsingDCs :: [DataCon] -> Gen (Expr Var)
-exprUsingDCs ds = Case <$> arbitrary <*> arbitrary <*> arbitrary <*> altOf ds
-  where altOf []     = return []
-        altOf (d:ds) = do xs <- altOf ds
-                          bs <- arbitrary
-                          e  <- arbitrary
-                          return ((DataAlt d, bs, e):xs)
+exprUsingDCs ds = Case <$> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> sized (altOf ds)
+  where altOf []     size = return []
+        altOf (d:ds) size = do let size' = size `div` 2
+                               xs <- altOf ds size'
+                               bs <- resize size' arbitrary
+                               e  <- resize size' arbitrary
+                               return ((DataAlt d, bs, e):xs)
 
 exprUsingTCs :: [TyCon.TyCon] -> Gen (Expr Var)
 exprUsingTCs ts = Type <$> typeUsing ts
   where typeUsing  []    = arbitrary
         typeUsing (t:ts) = do x <- typeUsing ts
                               return (Type.mkTyConApp t [x])
-
--- Generator combinators
-
--- | Remove duplicates from a list. Will only be empty when the input is.
---unique :: (Ord a) => [a] -> [a]
---unique = Set.toList . Set.fromList
 
 -- Helper functions
 

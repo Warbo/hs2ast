@@ -85,22 +85,24 @@ namesHaveMods = forAll (vector 100) haveMod
 -- | `t` is a "tag" for properties. In the example above, we might tag the
 -- | module names with "mod", to get s-expressions like ("mod" "Data.Bool")
 -- |
--- | QuickCheck supplies `namedThings` and `expr`. We test that, when `expr` is
--- | turned into an s-expression, all of the tagged properties are included.
-checkShown :: (NamedThing a, Data a)       =>
+-- | We test that, when `expr` is turned into an s-expression, all of the tagged
+-- | properties are included.
+checkShown :: (NamedThing a, Data a, Arbitrary a, Show a) =>
               ([a]    -> Gen (Expr Var))   ->
               ([Name] -> [String], String) ->
-              [a]                          ->
               Property
-checkShown gen (propsOf, t) namedThings = forAll (gen namedThings) propsShown
-  where propsShown expr = all (toSexp dummyDb expr `contains`) props
-        props           = map (tag t) (propsOf names)
-        names           = map getName namedThings
+checkShown gen (propsOf, t) = forAll gen' propsShown
+  where propsShown (ns, expr) = all (toSexp dummyDb expr `contains`) (props ns)
+        props = map (tag t) . propsOf . names
+        names = map getName
+        gen'  = do ns   <- arbitrary
+                   expr <- gen ns
+                   return (ns, expr)
 
 -- | Specialise the properties to be the name, module and package
-checkNameModPkg :: (NamedThing a, Data a)  =>
+checkNameModPkg :: (NamedThing a, Data a, Arbitrary a, Show a)  =>
                    ([a] -> Gen (Expr Var)) ->
-                   [[a] -> Property]
+                   [Property]
 checkNameModPkg gen = map (checkShown gen) [
   (map     getOccString,                            "name"),
   (ifThere moduleName,                              "mod"),
