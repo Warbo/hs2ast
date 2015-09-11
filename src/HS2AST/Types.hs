@@ -8,6 +8,7 @@ import           Data.Aeson
 import qualified Data.AttoLisp              as L
 import qualified Data.Attoparsec.ByteString as AB
 import           Data.Data
+import           Data.Maybe
 import           Data.Stringable
 import           FastString
 import           Module
@@ -24,6 +25,28 @@ data Identifier = ID {
   , idModule  :: String
   , idName    :: String
   }
+
+instance ToJSON Identifier where
+  toJSON i = object [
+      "package" .= idPackage i
+    , "module"  .= idModule  i
+    , "name"    .= idName    i
+    ]
+
+instance FromJSON Identifier where
+  parseJSON (Object x) = do
+    p <- x .: "package"
+    m <- x .: "module"
+    n <- x .: "name"
+    return ID {
+        idPackage = p
+      , idModule  = m
+      , idName    = n
+      }
+  parseJSON _ = mzero
+
+instance Show Identifier where
+  show = toString . encode . toJSON
 
 data Out   = Out {
     outPackage :: String
