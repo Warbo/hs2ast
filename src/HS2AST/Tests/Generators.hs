@@ -266,3 +266,4 @@ derive makeArbitrary ''TyThing
 derive makeArbitrary ''Module
 derive makeArbitrary ''PrimRep
 derive makeArbitrary ''PrimElemRep
+derive makeArbitrary ''Identifier
