@@ -17,10 +17,13 @@ import           Packages
 -- | Arbitrary rose trees
 data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
 
-type AST = Sexpr String
+type AST = L.Lisp
 
--- FIXME: Replace Sexpr with some existing implementation. sexp and sexpr don't
--- build with GHC 7.10, but attolisp does
+data Identifier = ID {
+    idPackage :: String
+  , idModule  :: String
+  , idName    :: String
+  }
 
 data Out   = Out {
     outPackage :: String
