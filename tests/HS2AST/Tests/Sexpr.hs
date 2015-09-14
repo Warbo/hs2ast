@@ -129,13 +129,15 @@ countLeaves _           = 1
 
 -- Check we can parse pretty-printed s-expressions
 
+showParse :: AST -> Either String AST
+showParse x = let bs = S.fromString $ show x
+               in AB.eitherResult (AB.parse L.lisp bs)
+
 parseShowInverse :: (a -> L.Lisp) -> a -> Bool
-parseShowInverse f x = let sexp = f x
-                           bs   = S.fromString . S.toString $ L.encode sexp
-                        in case AB.eitherResult (AB.parse L.lisp bs) of
+parseShowInverse f x = let sexp = cleanLisp (f x)
+                        in case showParse sexp of
                                 Left err -> error (show err)
                                 Right y  -> sexp == y
-
 
 parseShowInverseSexpr = parseShowInverse id
 

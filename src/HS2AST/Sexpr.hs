@@ -25,11 +25,15 @@ import           TypeRep
 import           Unique
 import           Var
 
-mkLeaf :: String -> L.Lisp
+mkLeaf :: String -> AST
 mkLeaf x = L.String (S.fromString . filterLisp $ x)
 
-mkNode :: [L.Lisp] -> L.Lisp
+mkNode :: [AST] -> AST
 mkNode = L.List
+
+cleanLisp :: AST -> AST
+cleanLisp (L.String x) = mkLeaf (filterLisp (S.toString x))
+cleanLisp (L.List xs) = L.List (map cleanLisp xs)
 
 -- | Convert Data instances to s-expressions
 toSexp :: Data a => PackageDb -> a -> L.Lisp
@@ -81,7 +85,8 @@ showBS :: ByteString -> L.Lisp
 showBS bs = mkNode [mkLeaf "BS", mkLeaf (unpack bs)]
 
 filterLisp :: String -> String
-filterLisp = filter isPrint
+filterLisp  = filter f
+  where f x = isPrint x && ('\\' `notElem` show x)
 
 packageNameFromKey :: PackageDb -> PackageKey -> PackageName
 packageNameFromKey db k = case db k of
