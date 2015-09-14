@@ -24,7 +24,7 @@ data Identifier = ID {
     idPackage :: String
   , idModule  :: String
   , idName    :: String
-  } deriving (Eq)
+  } deriving (Eq, Ord)
 
 instance ToJSON Identifier where
   toJSON i = object [
