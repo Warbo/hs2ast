@@ -58,10 +58,13 @@ recurse :: (Arbitrary a) => Gen a
 recurse = arbitrary
 
 instance Arbitrary L.Lisp where
-  arbitrary = choose (0, 0) >>= genSizedLisp
+  arbitrary = sized genSizedLisp
 
 genSizedLisp 0 = mkLeaf <$> arbitrary
-genSizedLisp n = mkNode <$> divideBetween genSizedLisp (n - 1)
+genSizedLisp n = do m <- choose (0, n)
+                    if even m
+                       then mkNode <$> divideBetween genSizedLisp (n - 1)
+                       else mkLeaf <$> arbitrary
 
 -- Exponentially small lists
 expList g = do x <- arbitrary
