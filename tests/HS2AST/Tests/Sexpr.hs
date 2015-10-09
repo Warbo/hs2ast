@@ -51,7 +51,7 @@ tests = testGroup "S-expression tests" [
 -- Make sure we have no GHC panics, undefined values, etc. in our s-expressions
 
 forceSexpr :: Data a => a -> Bool
-forceSexpr x = Prelude.length (show (toSexp dummyDb x)) > 0
+forceSexpr x = Prelude.length (show (toSexp dummyDb x)) `seq` True
 
 intSexprOk :: Int -> Bool
 intSexprOk = forceSexpr

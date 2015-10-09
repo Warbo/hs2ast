@@ -33,11 +33,14 @@ instance ToJSON Identifier where
     , "name"    .= idName    i
     ]
 
+pmn x = do p <- x .: "package"
+           m <- x .: "module"
+           n <- x .: "name"
+           return (p, m, n)
+
 instance FromJSON Identifier where
   parseJSON (Object x) = do
-    p <- x .: "package"
-    m <- x .: "module"
-    n <- x .: "name"
+    (p, m, n) <- pmn x
     return ID {
         idPackage = p
       , idModule  = m
@@ -65,9 +68,7 @@ instance ToJSON Out where
 
 instance FromJSON Out where
   parseJSON (Object x) = do
-    p <- x .: "package"
-    m <- x .: "module"
-    n <- x .: "name"
+    (p, m, n) <- pmn x
     rawAst <- x .: "ast"
     ast    <- case AB.maybeResult . AB.parse L.lisp . fromString $ rawAst of
                    Nothing -> mzero

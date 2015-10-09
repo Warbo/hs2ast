@@ -89,6 +89,6 @@ filterLisp  = filter f
   where f x = isPrint x && ('\\' `notElem` show x)
 
 packageNameFromKey :: PackageDb -> PackageKey -> PackageName
-packageNameFromKey db k = case db k of
-  Nothing -> error ("Couldn't find package " ++ packageKeyString k)
-  Just n  -> n
+packageNameFromKey db k =
+  fromMaybe (error ("Couldn't find package " ++ packageKeyString k))
+            (db k)
