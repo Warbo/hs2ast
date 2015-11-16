@@ -72,12 +72,37 @@ expList g = do x <- arbitrary
                     else return []
 
 -- Enable more constructors as necessary
-instance (Arbitrary a) => Arbitrary (Expr a) where
-  arbitrary = sized f
-    where f x = frequency [(x+1, Var <$> arbitrary),
-                           (x+1, Lit <$> arbitrary),
-                           (1, App <$> f x <*> f x),
-                           (1, Lam <$> arbitrary <*> f x)]
+instance Arbitrary (Expr Var) where
+  arbitrary = sized genExpr
+
+instance Arbitrary (Bind Var) where
+  arbitrary = sized genBinds
+
+genExpr x = frequency [
+    (x+1, Var      <$> arbitrary),
+    (x+1, Lit      <$> arbitrary),
+    (1,   App      <$> genExpr  x <*> genExpr x),
+    (1,   Lam      <$> arbitrary  <*> genExpr x),
+    (1,   Let      <$> genBinds x <*> genExpr x),
+    (1,   Case     <$> genExpr  x <*> arbitrary <*> arbitrary <*> genAlts x),
+    (1,   Cast     <$> genExpr  x <*> arbitrary),
+    (1,   Tick     <$> arbitrary  <*> genExpr x),
+    (x+1, Type     <$> arbitrary),
+    (x+1, Coercion <$> arbitrary)
+  ]
+
+genBinds :: Int -> Gen (Bind Var)
+genBinds x = frequency [(x+1, NonRec <$> arbitrary <*> genExpr x),
+                        (1,   Rec    <$> arbitrary)]
+
+genAlts :: Int -> Gen [Alt Var]
+genAlts x = divideBetween genAlt x
+
+genAlt :: Int -> Gen (Alt Var)
+genAlt x = do a <- arbitrary
+              b <- arbitrary
+              c <- genExpr x
+              return (a, b, c)
 
 -- These cannot be derived
 
@@ -178,7 +203,7 @@ instance Arbitrary ClassMinimalDef where
   arbitrary = undefined
 
 instance Arbitrary Coercion where
-  arbitrary = undefined
+  arbitrary = CoVarCo <$> arbitrary
 
 instance Arbitrary PatSyn where
   arbitrary = undefined
@@ -206,6 +231,9 @@ instance CoArbitrary Var where
 
 instance CoArbitrary Unique where
   coarbitrary x = variant (getKey x)
+
+instance Arbitrary (Tickish a) where
+  arbitrary = return (Breakpoint 0 [])
 
 -- More-specific generators
 
@@ -257,7 +285,6 @@ derive makeArbitrary ''RecFlag
 derive makeArbitrary ''DataConBoxer
 derive makeArbitrary ''Branched
 derive makeArbitrary ''StrictnessMark
-derive makeArbitrary ''Bind
 derive makeArbitrary ''TyConParent
 derive makeArbitrary ''AlgTyConRhs
 derive makeArbitrary ''HsBang
@@ -270,3 +297,4 @@ derive makeArbitrary ''Module
 derive makeArbitrary ''PrimRep
 derive makeArbitrary ''PrimElemRep
 derive makeArbitrary ''Identifier
+derive makeArbitrary ''AltCon
