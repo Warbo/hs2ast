@@ -96,7 +96,7 @@ genBinds x = frequency [(x+1, NonRec <$> arbitrary <*> genExpr x),
                         (1,   Rec    <$> arbitrary)]
 
 genAlts :: Int -> Gen [Alt Var]
-genAlts x = divideBetween genAlt x
+genAlts = divideBetween genAlt
 
 genAlt :: Int -> Gen (Alt Var)
 genAlt x = do a <- arbitrary
