@@ -90,5 +90,5 @@ filterLisp  = filter f
 
 packageNameFromKey :: PackageDb -> PackageKey -> PackageName
 packageNameFromKey db k =
-  fromMaybe (error ("Couldn't find package " ++ packageKeyString k))
+  fromMaybe (PackageName (mkFastString ("HS2AST-NOT-FOUND-" ++ packageKeyString k)))
             (db k)
