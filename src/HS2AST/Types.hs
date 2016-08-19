@@ -64,10 +64,10 @@ data Out   = Out {
 
 instance ToJSON Out where
   toJSON o = object [
-      "package" .=           outPackage o
-    , "module"  .=           outModule  o
-    , "name"    .=           outName    o
-    , "ast"     .= L.encode (outAst     o)
+      "package" .=                                        outPackage o
+    , "module"  .=                                        outModule  o
+    , "name"    .=                                        outName    o
+    , "ast"     .= TE.decodeUtf8 (LBS.toStrict (L.encode (outAst     o)))
     ]
 
 instance FromJSON Out where
