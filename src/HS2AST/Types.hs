@@ -7,9 +7,13 @@ import           Control.Monad
 import           Data.Aeson
 import qualified Data.AttoLisp              as L
 import qualified Data.Attoparsec.ByteString as AB
+import qualified Data.Attoparsec.Text       as AT
+import qualified Data.ByteString.Lazy.Char8 as LBS
 import           Data.Data
 import           Data.Maybe
 import           Data.Stringable
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as TE
 import           FastString
 import           Module
 import           Name
@@ -21,9 +25,9 @@ data Sexpr a = Leaf a | Node [Sexpr a] deriving (Eq, Typeable, Data)
 type AST = L.Lisp
 
 data Identifier = ID {
-    idPackage :: String
-  , idModule  :: String
-  , idName    :: String
+    idPackage :: T.Text
+  , idModule  :: T.Text
+  , idName    :: T.Text
   } deriving (Eq, Ord)
 
 instance ToJSON Identifier where
@@ -52,25 +56,25 @@ instance Show Identifier where
   show = toString . encode . toJSON
 
 data Out   = Out {
-    outPackage :: String
-  , outModule  :: String
-  , outName    :: String
+    outPackage :: T.Text
+  , outModule  :: T.Text
+  , outName    :: T.Text
   , outAst     :: L.Lisp
   }
 
 instance ToJSON Out where
   toJSON o = object [
-      "package" .=                     outPackage o
-    , "module"  .=                     outModule  o
-    , "name"    .=                     outName    o
-    , "ast"     .= toString (L.encode (outAst     o))
+      "package" .=           outPackage o
+    , "module"  .=           outModule  o
+    , "name"    .=           outName    o
+    , "ast"     .= L.encode (outAst     o)
     ]
 
 instance FromJSON Out where
   parseJSON (Object x) = do
     (p, m, n) <- pmn x
     rawAst <- x .: "ast"
-    ast    <- case AB.maybeResult . AB.parse L.lisp . fromString $ rawAst of
+    ast    <- case AB.maybeResult . AB.parse L.lisp . TE.encodeUtf8 $ rawAst of
                    Nothing -> mzero
                    Just x  -> return x
     return Out {

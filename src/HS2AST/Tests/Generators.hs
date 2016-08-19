@@ -13,6 +13,7 @@ import qualified Data.AttoLisp              as L
 import           DataCon   hiding (IntRep, FloatRep)
 import           Data.Data hiding (IntRep, FloatRep)
 import           Data.DeriveTH
+import qualified Data.Text                  as T
 import           FastString
 import           ForeignCall
 import           HS2AST.Sexpr
@@ -234,6 +235,9 @@ instance CoArbitrary Unique where
 
 instance Arbitrary (Tickish a) where
   arbitrary = return (Breakpoint 0 [])
+
+instance Arbitrary T.Text where
+  arbitrary = T.pack <$> arbitrary
 
 -- More-specific generators
 

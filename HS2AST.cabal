@@ -17,16 +17,17 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 Library
-  build-depends:       base >=4.7
-                     , ghc
-                     , syb
-                     , bytestring
-                     , aeson
-                     , stringable
+  build-depends:       aeson
                      , atto-lisp
                      , attoparsec
+                     , base >=4.7
+                     , bytestring
                      , derive
+                     , ghc
                      , QuickCheck
+                     , stringable
+                     , syb
+                     , text
   exposed-modules:     HS2AST.Sexpr
                      , HS2AST.Types
                      , HS2AST.Tests.Generators
