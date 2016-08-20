@@ -2,7 +2,7 @@
 --  see http://haskell.org/cabal/users-guide/
 
 name:                HS2AST
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            Dump syntax trees of Haskell code
 -- description:         
 homepage:            http://chriswarbo.net/essays/repos/hs2ast.html
