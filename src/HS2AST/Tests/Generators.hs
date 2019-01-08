@@ -243,8 +243,7 @@ instance Arbitrary T.Text where
 
 exprUsingVars :: [Var] -> Gen (Expr Var)
 exprUsingVars []     = arbitrary
-exprUsingVars (v:vs) = do x <- exprUsingVars vs
-                          return (App (Var v) x)
+exprUsingVars (v:vs) = App (Var v) <$> exprUsingVars vs
 
 -- This is very expensive compared to Vars and TCs, so we pass along an
 -- exponentially-decreasing "size" parameter
