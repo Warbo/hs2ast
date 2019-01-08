@@ -242,8 +242,7 @@ instance Arbitrary T.Text where
 -- More-specific generators
 
 exprUsingVars :: [Var] -> Gen (Expr Var)
-exprUsingVars []     = arbitrary
-exprUsingVars (v:vs) = App (Var v) <$> exprUsingVars vs
+exprUsingVars = foldr ((<$>) . App . Var) arbitrary
 
 -- This is very expensive compared to Vars and TCs, so we pass along an
 -- exponentially-decreasing "size" parameter
